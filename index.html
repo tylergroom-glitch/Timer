@@ -123,6 +123,12 @@ a{color:var(--blue)}
 #remote input{width:100%;margin:6px 0}
 #remote p{margin:6px 0;font-size:13px;color:var(--dim)}
 #link{word-break:break-all;font-size:13px}
+#camBody{display:flex;flex-direction:column;gap:8px;padding:10px}
+#camView{flex:1;min-height:0;display:none;background:#000;border-radius:6px;overflow:hidden}
+#camView.on{display:block}
+#camView img,#camView video,#camView iframe{width:100%;height:100%;object-fit:contain;border:0;display:block}
+.win.showing-cam #camSetup{display:none}
+.win.showing-cam:hover #camSetup{display:block}
 
 body.popout #bar,body.popout .grip,body.popout #dock{display:none}
 body.popout #workspace{height:100%}
@@ -222,6 +228,28 @@ body.popout .win header{display:none}
     <div class="grip"></div>
   </section>
 
+  <section class="win" id="win-camera" style="left:1040px;top:340px;width:420px;height:320px">
+    <header><span class="name">Camera</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <div class="body" id="camBody">
+      <div id="camView"></div>
+      <div id="camSetup">
+        <p style="margin:0 0 6px;font-size:13px;color:var(--dim)">Snapshot, HLS stream, or a share page.</p>
+        <input id="camUrl" type="url" placeholder="https://192.168.1.50/snap.jpeg" spellcheck="false" style="width:100%">
+        <div class="row" style="justify-content:flex-start;margin-top:8px">
+          <select id="camMode" style="background:#131920;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit">
+            <option value="snapshot">Snapshot</option>
+            <option value="hls">HLS stream</option>
+            <option value="page">Share page</option>
+          </select>
+          <button class="primary" id="camApply">Show</button>
+          <button id="camStop">Stop</button>
+        </div>
+        <p id="camState" style="margin:8px 0 0;font-size:13px;color:var(--dim)"></p>
+      </div>
+    </div>
+    <div class="grip"></div>
+  </section>
+
   <div id="dock"></div>
 </div>
 
@@ -283,6 +311,8 @@ function loadSaved() {
     if (typeof saved.slide === 'number') state.slide = saved.slide;
     if (saved.dbUrl && $('dbUrl')) $('dbUrl').value = saved.dbUrl;
     if (saved.arrowStyle) arrowStyle = saved.arrowStyle;
+    if (saved.camUrl && $('camUrl')) $('camUrl').value = saved.camUrl;
+    if (saved.camMode && $('camMode')) $('camMode').value = saved.camMode;
     if (saved.showKey) showKey = saved.showKey;
     const bg = readBg();
     applyBackground(bg, false);
@@ -296,7 +326,9 @@ function save() {
       layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height,
                        min: w.dataset.min === '1', clear: w.classList.contains('clear') };
     });
-    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey }));
+    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle,
+      camUrl: $('camUrl') ? $('camUrl').value.trim() : '', camMode: $('camMode') ? $('camMode').value : 'snapshot',
+      dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey }));
   } catch {}
 }
 
@@ -617,6 +649,58 @@ function publishBackground(bg) {
     .catch(() => {});
 }
 
+/* ---------- Camera ---------- */
+let camTimer = null;
+function stopCamera() {
+  clearInterval(camTimer);
+  camTimer = null;
+  $('camView').innerHTML = '';
+  $('camView').classList.remove('on');
+  $('win-camera').classList.remove('showing-cam');
+  $('camState').textContent = '';
+}
+function startCamera(url, mode) {
+  stopCamera();
+  if (!url) { $('camState').textContent = 'Enter a camera URL first.'; return; }
+  const view = $('camView');
+  view.classList.add('on');
+  $('win-camera').classList.add('showing-cam');
+  if (mode === 'snapshot') {
+    const img = document.createElement('img');
+    img.alt = 'Camera';
+    img.onerror = () => { $('camState').textContent = 'Could not load the image — check the URL and the certificate warning.'; };
+    view.append(img);
+    const tick = () => { img.src = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(); };
+    tick();
+    camTimer = setInterval(tick, 1000);
+    $('camState').textContent = 'Refreshing once a second.';
+  } else if (mode === 'hls') {
+    const video = document.createElement('video');
+    video.autoplay = true; video.muted = true; video.playsInline = true; video.controls = false;
+    view.append(video);
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = url;
+    } else if (window.Hls) {
+      const hls = new window.Hls({ lowLatencyMode: true });
+      hls.loadSource(url); hls.attachMedia(video);
+    } else {
+      const tag = document.createElement('script');
+      tag.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js';
+      tag.onload = () => { const hls = new window.Hls({ lowLatencyMode: true }); hls.loadSource(url); hls.attachMedia(video); };
+      tag.onerror = () => { $('camState').textContent = 'Could not load the stream player.'; };
+      document.head.append(tag);
+    }
+    $('camState').textContent = 'Streaming.';
+  } else {
+    const frame = document.createElement('iframe');
+    frame.src = url;
+    frame.allow = 'autoplay; fullscreen';
+    view.append(frame);
+    $('camState').textContent = 'If this stays blank, the camera page blocks embedding.';
+  }
+  save();
+}
+
 /* ---------- Wiring ---------- */
 if (!popoutPanel) {
   $('dbUrl').addEventListener('change', () => {
@@ -692,6 +776,8 @@ if (!popoutPanel) {
   });
   $('plus').addEventListener('click', () => applyCue('next'));
   $('minus').addEventListener('click', () => applyCue('back'));
+  $('camApply').addEventListener('click', () => startCamera($('camUrl').value.trim(), $('camMode').value));
+  $('camStop').addEventListener('click', stopCamera);
   $('arrowStyle').addEventListener('change', e => {
     arrowStyle = e.target.value;
     paintArrows(arrowStyle);
