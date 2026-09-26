@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Show view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#10151C;--text:#DCE2E8;--dim:#8C98A5;--green:#3FB950;--amber:#E3B341;--red:#F85149;--line:#2C3542}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;padding:4vmin;text-align:center}
+#time{font-weight:500;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em;font-size:min(30vh,22vw)}
+#time.green{color:var(--green)}
+#time.amber{color:var(--amber)}
+#time.red{color:var(--red)}
+#time.over{animation:blink 1s steps(2,end) infinite}
+@keyframes blink{50%{opacity:.35}}
+#sub{color:var(--dim);font-size:clamp(13px,2.2vh,17px)}
+.arrows{display:flex;gap:6vw;align-items:center;justify-content:center;width:min(70vw,520px)}
+.arrows svg{width:44%}
+.arrow{opacity:.14;transition:opacity .09s ease}
+.arrow.back{fill:var(--red)}
+.arrow.next{fill:var(--green)}
+.arrow.hit{opacity:1}
+#slide{font-size:clamp(14px,2.4vh,19px);color:var(--dim)}
+#slide b{color:var(--text);font-weight:500}
+#state{position:fixed;top:10px;right:14px;font-size:13px;color:var(--dim)}
+</style>
+</head>
+<body>
+<div id="state">connecting…</div>
+<div id="time">--:--</div>
+<div id="sub">Waiting for the show</div>
+<div class="arrows">
+  <svg viewBox="0 0 100 100" aria-label="Back cue"><polygon class="arrow back" id="aBack" points="95,8 95,92 8,50"/></svg>
+  <svg viewBox="0 0 100 100" aria-label="Next cue"><polygon class="arrow next" id="aNext" points="5,8 5,92 92,50"/></svg>
+</div>
+<div id="slide">Slide <b id="slideNum">0</b></div>
+
+<script>
+const q = new URLSearchParams(location.search);
+const db = (q.get('db') || '').replace(/\/+$/, '');
+const key = q.get('k');
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const fmt = s => `${s < 0 ? '+' : ''}${Math.floor(Math.abs(Math.round(s))/60)}:${pad(Math.abs(Math.round(s))%60)}`;
+
+if (!db || !key) {
+  $('state').textContent = 'bad link';
+  $('sub').textContent = 'This link is missing its show details.';
+} else {
+  start();
+}
+
+let lastCueAt = 0;
+
+function paint(d) {
+  if (!d) return;
+  const live = d.live;
+  if (live) {
+    const left = live.total - live.elapsed;
+    $('time').textContent = fmt(left);
+    $('time').className = left <= 0 ? 'red over' : left <= live.yellow ? 'amber' : 'green';
+    $('sub').textContent = `Set ${fmt(live.total)} · ${live.running ? 'running' : 'stopped'}`;
+  } else {
+    $('time').textContent = '--:--';
+    $('time').className = '';
+    $('sub').textContent = 'Timer not running';
+  }
+  $('slideNum').textContent = d.slide != null ? d.slide : 0;
+  if (d.lastCue && d.lastCue.at && d.lastCue.at !== lastCueAt) {
+    lastCueAt = d.lastCue.at;
+    if (Date.now() - d.lastCue.at < 8000) flash(d.lastCue.type);
+  }
+}
+
+function flash(type) {
+  const el = $(type === 'next' ? 'aNext' : 'aBack');
+  el.classList.remove('hit');
+  void el.offsetWidth;
+  el.classList.add('hit');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('hit'), 450);
+}
+
+function start() {
+  const url = `${db}/shows/${key}.json`;
+  let es;
+  try {
+    es = new EventSource(url);
+    es.addEventListener('put', e => {
+      $('state').textContent = 'live';
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.path === '/') paint(msg.data);
+        else poll();
+      } catch {}
+    });
+    es.addEventListener('patch', () => poll());
+    es.onerror = () => { $('state').textContent = 'reconnecting…'; };
+  } catch {
+    setInterval(poll, 1000);
+  }
+  poll();
+  setInterval(() => { if ($('state').textContent !== 'live') poll(); }, 3000);
+}
+
+function poll() {
+  fetch(`${db}/shows/${key}.json`, { cache: 'no-store' })
+    .then(r => r.json())
+    .then(d => { $('state').textContent = 'live'; paint(d); })
+    .catch(() => { $('state').textContent = 'offline'; });
+}
+</script>
+</body>
+</html>
