@@ -479,9 +479,9 @@ let candidate = null;
 
 function applyLive(b) {
   const live = {
-    total: b[9] * 256 + b[10],
-    yellow: b[12] * 256 + b[13],
-    elapsed: b[15] * 256 + b[16],
+    total: b[9] * 128 + b[10],
+    yellow: b[12] * 128 + b[13],
+    elapsed: b[15] * 128 + b[16],
     running: b[6] === 1
   };
   if (live.total > 86400 || live.elapsed > 86400 || live.yellow > live.total) return;
