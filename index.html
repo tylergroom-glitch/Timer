@@ -58,10 +58,14 @@ a{color:var(--blue)}
 
 .arrows{display:flex;align-items:center;justify-content:center;gap:5%;height:100%}
 .arrows svg{height:86%;width:45%;cursor:pointer}
-.arrow{opacity:.16;transition:opacity .09s ease}
-.arrow.back{fill:var(--red)}
-.arrow.next{fill:var(--green)}
-.arrow.hit{opacity:1}
+.chase-svg g path{transition:none}
+.chase-svg.back path{fill:var(--red)}
+.chase-svg.next path{fill:var(--green)}
+.chase-svg .ch1,.chase-svg .ch2,.chase-svg .ch3{opacity:.13}
+.chase-svg.fire .ch1{animation:flare .55s ease-out 0s}
+.chase-svg.fire .ch2{animation:flare .55s ease-out .09s}
+.chase-svg.fire .ch3{animation:flare .55s ease-out .18s}
+@keyframes flare{0%{opacity:.13}18%{opacity:1}55%{opacity:.9}100%{opacity:.13}}
 
 .count{font-weight:500;font-variant-numeric:tabular-nums;line-height:1;text-align:center;font-size:min(34cqh,40cqw)}
 .row{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
@@ -114,8 +118,8 @@ body.popout .win header{display:none}
     <header><span class="name">Cue lights</span><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
     <div class="body">
       <div class="arrows">
-        <svg viewBox="0 0 100 100" role="img" aria-label="Back cue" id="arrowBack"><polygon class="arrow back" points="95,8 95,92 8,50"/></svg>
-        <svg viewBox="0 0 100 100" role="img" aria-label="Next cue" id="arrowNext"><polygon class="arrow next" points="5,8 5,92 92,50"/></svg>
+        <svg viewBox="0 0 100 100" role="img" aria-label="back cue" id="arrowBack" class="chase-svg back"><g transform="scale(-1,1) translate(-100,0)"><g class="ch1" transform="translate(4,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch2" transform="translate(34,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch3" transform="translate(64,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g></g></svg>
+        <svg viewBox="0 0 100 100" role="img" aria-label="next cue" id="arrowNext" class="chase-svg next"><g class="ch1" transform="translate(4,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch2" transform="translate(34,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch3" transform="translate(64,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g></svg>
       </div>
     </div>
     <div class="grip"></div>
@@ -341,12 +345,11 @@ setInterval(() => { if ($('sHold')) render(); }, 1000);
 function pulse(type) {
   const svg = $(type === 'next' ? 'arrowNext' : 'arrowBack');
   if (!svg) return;
-  const poly = svg.querySelector('.arrow');
-  poly.classList.remove('hit');
-  void poly.offsetWidth;
-  poly.classList.add('hit');
-  clearTimeout(poly._t);
-  poly._t = setTimeout(() => poly.classList.remove('hit'), 420);
+  svg.classList.remove('fire');
+  void svg.offsetWidth;
+  svg.classList.add('fire');
+  clearTimeout(svg._t);
+  svg._t = setTimeout(() => svg.classList.remove('fire'), 800);
 }
 
 /* ---------- Cues ---------- */

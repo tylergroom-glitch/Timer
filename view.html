@@ -19,12 +19,15 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex San
 #time.over{animation:blink 1s steps(2,end) infinite}
 @keyframes blink{50%{opacity:.35}}
 #sub{color:var(--dim);font-size:clamp(13px,2.2vh,17px)}
-.arrows{display:flex;gap:6vw;align-items:center;justify-content:center;width:min(70vw,520px)}
+.arrows{display:flex;gap:6vw;align-items:center;justify-content:center;width:min(76vw,620px)}
 .arrows svg{width:44%}
-.arrow{opacity:.14;transition:opacity .09s ease}
-.arrow.back{fill:var(--red)}
-.arrow.next{fill:var(--green)}
-.arrow.hit{opacity:1}
+.chase-svg.back path{fill:var(--red)}
+.chase-svg.next path{fill:var(--green)}
+.chase-svg .ch1,.chase-svg .ch2,.chase-svg .ch3{opacity:.13}
+.chase-svg.fire .ch1{animation:flare .55s ease-out 0s}
+.chase-svg.fire .ch2{animation:flare .55s ease-out .09s}
+.chase-svg.fire .ch3{animation:flare .55s ease-out .18s}
+@keyframes flare{0%{opacity:.13}18%{opacity:1}55%{opacity:.9}100%{opacity:.13}}
 #slide{font-size:clamp(14px,2.4vh,19px);color:var(--dim)}
 #slide b{color:var(--text);font-weight:500}
 #state{position:fixed;top:10px;right:14px;font-size:13px;color:var(--dim)}
@@ -35,8 +38,8 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex San
 <div id="time">--:--</div>
 <div id="sub">Waiting for the show</div>
 <div class="arrows">
-  <svg viewBox="0 0 100 100" aria-label="Back cue"><polygon class="arrow back" id="aBack" points="95,8 95,92 8,50"/></svg>
-  <svg viewBox="0 0 100 100" aria-label="Next cue"><polygon class="arrow next" id="aNext" points="5,8 5,92 92,50"/></svg>
+  <svg viewBox="0 0 100 100" role="img" aria-label="back cue" id="aBack" class="chase-svg back"><g transform="scale(-1,1) translate(-100,0)"><g class="ch1" transform="translate(4,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch2" transform="translate(34,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch3" transform="translate(64,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g></g></svg>
+        <svg viewBox="0 0 100 100" role="img" aria-label="next cue" id="aNext" class="chase-svg next"><g class="ch1" transform="translate(4,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch2" transform="translate(34,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch3" transform="translate(64,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g></svg>
 </div>
 <div id="slide">Slide <b id="slideNum">0</b></div>
 
@@ -79,11 +82,12 @@ function paint(d) {
 
 function flash(type) {
   const el = $(type === 'next' ? 'aNext' : 'aBack');
-  el.classList.remove('hit');
+  if (!el) return;
+  el.classList.remove('fire');
   void el.offsetWidth;
-  el.classList.add('hit');
+  el.classList.add('fire');
   clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('hit'), 450);
+  el._t = setTimeout(() => el.classList.remove('fire'), 800);
 }
 
 function start() {
