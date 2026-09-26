@@ -10,6 +10,13 @@
 :root{--bg:#10151C;--text:#DCE2E8;--dim:#8C98A5;--green:#3FB950;--amber:#E3B341;--red:#F85149;--line:#2C3542}
 *{box-sizing:border-box}
 #bgLayer{position:fixed;inset:0;background-size:cover;background-position:center;z-index:-1}
+body.clear{background:transparent}
+body.clear #bgLayer{display:none}
+body.clear #time,body.clear .cue-arrow,body.clear #slide,body.clear #sub{filter:drop-shadow(0 2px 7px rgba(0,0,0,.6))}
+body.hide-arrows .arrows,body.hide-arrows #slide{display:none}
+body.hide-timer #time,body.hide-timer #sub{display:none}
+body.hide-slide #slide{display:none}
+body.hide-state #state{display:none}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;padding:4vmin;text-align:center}
@@ -22,10 +29,13 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex San
 #sub{color:var(--dim);font-size:clamp(13px,2.2vh,17px)}
 .arrows{display:flex;gap:6vw;align-items:center;justify-content:center;width:min(76vw,620px)}
 .arrows svg{width:44%}
-.cue-arrow polygon{opacity:.15}
-.cue-arrow.next polygon{fill:var(--green)}
-.cue-arrow.back polygon{fill:var(--red)}
-.cue-arrow.fire polygon{
+.cue-arrow polygon,.cue-arrow path,.cue-arrow circle{opacity:.4}
+.cue-arrow.next polygon,.cue-arrow.next path,.cue-arrow.next circle{fill:var(--green)}
+.cue-arrow.back polygon,.cue-arrow.back path,.cue-arrow.back circle{fill:var(--red)}
+.cue-arrow text{opacity:.45;font-size:66px}
+
+/* classic: solid triangle, light sweeps left to right */
+.cue-arrow.style-classic.fire .shape{
   -webkit-mask-image:linear-gradient(90deg,#000 0 48%,transparent 78%);
   mask-image:linear-gradient(90deg,#000 0 48%,transparent 78%);
   -webkit-mask-size:230% 100%;mask-size:230% 100%;
@@ -33,8 +43,45 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex San
   animation:lightUp .75s ease-out}
 @keyframes lightUp{
   0%{opacity:1;-webkit-mask-position:100% 0;mask-position:100% 0}
-  55%{opacity:1;-webkit-mask-position:0% 0;mask-position:0% 0}
-  100%{opacity:.15;-webkit-mask-position:0% 0;mask-position:0% 0}}
+  50%{opacity:1;-webkit-mask-position:0% 0;mask-position:0% 0}
+  78%{opacity:1;-webkit-mask-position:0% 0;mask-position:0% 0}
+  100%{opacity:.4;-webkit-mask-position:0% 0;mask-position:0% 0}}
+
+/* chase: three chevrons in sequence */
+.cue-arrow.style-chase.fire .ch1{animation:flare .7s ease-out 0s}
+.cue-arrow.style-chase.fire .ch2{animation:flare .7s ease-out .1s}
+.cue-arrow.style-chase.fire .ch3{animation:flare .7s ease-out .2s}
+@keyframes flare{0%{opacity:.4}15%{opacity:1}60%{opacity:1}100%{opacity:.4}}
+
+/* star: pops and spins */
+.cue-arrow.style-star .shape{transform-box:fill-box;transform-origin:center}
+.cue-arrow.style-star.fire .shape{animation:starPop .75s cubic-bezier(.2,1.4,.4,1)}
+@keyframes starPop{0%{opacity:.4;transform:scale(.55) rotate(-35deg)}
+  45%{opacity:1;transform:scale(1.12) rotate(8deg)}
+  70%{opacity:1;transform:scale(1) rotate(0)}
+  100%{opacity:.4;transform:scale(1) rotate(0)}}
+
+/* sparks: triangle throws particles */
+.cue-arrow.style-sparks.fire .shape{animation:flare .75s ease-out}
+.cue-arrow.style-sparks circle{opacity:0}
+.cue-arrow.style-sparks.fire circle{animation:spark .7s ease-out}
+.cue-arrow.style-sparks.fire .s2{animation-delay:.04s}
+.cue-arrow.style-sparks.fire .s3{animation-delay:.08s}
+.cue-arrow.style-sparks.fire .s4{animation-delay:.02s}
+.cue-arrow.style-sparks.fire .s5{animation-delay:.1s}
+.cue-arrow.style-sparks.fire .s6{animation-delay:.06s}
+@keyframes spark{0%{opacity:0;transform:translate(0,0) scale(.4)}
+  20%{opacity:1}
+  100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.1)}}
+.cue-arrow.style-sparks circle{transform-box:fill-box;transform-origin:center}
+
+/* pointer: a finger that jabs */
+.cue-arrow.style-pointer .shape{transform-box:fill-box;transform-origin:center}
+.cue-arrow.style-pointer.fire .shape{animation:jab .75s ease-out}
+@keyframes jab{0%{opacity:.45;transform:translateX(-14px) scale(.9)}
+  35%{opacity:1;transform:translateX(10px) scale(1.12)}
+  65%{opacity:1;transform:translateX(0) scale(1)}
+  100%{opacity:.45;transform:translateX(0) scale(1)}}
 #slide{font-size:clamp(14px,2.4vh,19px);color:var(--dim)}
 #slide b{color:var(--text);font-weight:500}
 #state{position:fixed;top:10px;right:14px;font-size:13px;color:var(--dim)}
@@ -46,8 +93,8 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex San
 <div id="time">--:--</div>
 <div id="sub">Waiting for the show</div>
 <div class="arrows">
-  <svg viewBox="0 0 100 100" role="img" aria-label="Back cue" id="aBack" class="cue-arrow back"><polygon points="95,8 95,92 8,50"/></svg>
-  <svg viewBox="0 0 100 100" role="img" aria-label="Next cue" id="aNext" class="cue-arrow next"><polygon points="5,8 5,92 92,50"/></svg>
+  <svg viewBox="0 0 100 100" role="img" aria-label="Back cue" id="aBack" class="cue-arrow back style-classic"></svg>
+  <svg viewBox="0 0 100 100" role="img" aria-label="Next cue" id="aNext" class="cue-arrow next style-classic"></svg>
 </div>
 <div id="slide">Slide <b id="slideNum">0</b></div>
 
@@ -56,6 +103,12 @@ const q = new URLSearchParams(location.search);
 const db = (q.get('db') || '').replace(/\/+$/, '');
 const key = q.get('k');
 const $ = id => document.getElementById(id);
+const flag = (name, def) => { const v = q.get(name); return v === null ? def : !(v === '0' || v === 'false' || v === 'no'); };
+if (flag('clear', false)) document.body.classList.add('clear');
+if (!flag('arrows', true)) document.body.classList.add('hide-arrows');
+if (!flag('timer', true)) document.body.classList.add('hide-timer');
+if (!flag('slide', true)) document.body.classList.add('hide-slide');
+if (!flag('status', true)) document.body.classList.add('hide-state');
 const pad = n => String(n).padStart(2, '0');
 const fmt = s => `${s < 0 ? '+' : ''}${Math.floor(Math.abs(Math.round(s))/60)}:${pad(Math.abs(Math.round(s))%60)}`;
 
@@ -67,6 +120,34 @@ if (!db || !key) {
 }
 
 let lastCueAt = 0;
+let shownStyle = null;
+const arrowIdPrefix = 'a';
+const ARROW_STYLES = {
+  classic: '<polygon class="shape" points="8,10 8,90 94,50"/>',
+  chase: ['<g class="ch1" transform="translate(4,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g>',
+          '<g class="ch2" transform="translate(34,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g>',
+          '<g class="ch3" transform="translate(64,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g>'].join(''),
+  star: '<polygon class="shape" points="50,5 61,37 95,37 67,57 78,92 50,71 22,92 33,57 5,37 39,37"/>',
+  sparks: '<polygon class="shape" points="10,16 10,84 82,50"/>' +
+    [[26,-22],[34,-4],[28,16],[18,-30],[36,8],[22,26]].map((d, i) =>
+      `<circle class="s${i+1}" cx="78" cy="50" r="5" style="--dx:${d[0]}px;--dy:${d[1]}px"/>`).join(''),
+  pointer: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F449}</text>'
+};
+const ARROW_NAMES = { classic: 'Classic', chase: 'Chase', star: 'Stars', sparks: 'Sparks', pointer: 'Finger' };
+
+function paintArrows(style) {
+  const s = ARROW_STYLES[style] ? style : 'classic';
+  for (const dir of ['Next', 'Back']) {
+    const svg = document.getElementById(arrowIdPrefix + dir);
+    if (!svg) continue;
+    const inner = ARROW_STYLES[s];
+    svg.innerHTML = dir === 'Back'
+      ? `<g transform="scale(-1,1) translate(-100,0)">${inner}</g>`
+      : inner;
+    svg.setAttribute('class', `cue-arrow ${dir.toLowerCase()} style-${s}`);
+  }
+}
+paintArrows('classic');
 
 function paint(d) {
   if (!d) return;
@@ -81,6 +162,7 @@ function paint(d) {
     $('time').className = '';
     $('sub').textContent = 'Timer not running';
   }
+  if (d.arrowStyle && d.arrowStyle !== shownStyle) { shownStyle = d.arrowStyle; paintArrows(d.arrowStyle); }
   $('slideNum').textContent = d.slide != null ? d.slide : 0;
   if (d.lastCue && d.lastCue.at && d.lastCue.at !== lastCueAt) {
     lastCueAt = d.lastCue.at;
@@ -101,7 +183,13 @@ function flash(type) {
 function loadBackground() {
   fetch(`${db}/shows/${key}/bg.json`, { cache: 'no-store' })
     .then(r => r.json())
-    .then(d => { document.getElementById('bgLayer').style.backgroundImage = d ? `url(${d})` : ''; })
+    .then(d => {
+      const layer = document.getElementById('bgLayer');
+      if (!d) { layer.style.backgroundImage = ''; layer.style.backgroundColor = ''; return; }
+      if (typeof d === 'string') { layer.style.backgroundColor = ''; layer.style.backgroundImage = `url(${d})`; return; }
+      if (d.type === 'color') { layer.style.backgroundImage = ''; layer.style.backgroundColor = d.value; }
+      else { layer.style.backgroundColor = ''; layer.style.backgroundImage = `url(${d.value})`; }
+    })
     .catch(() => {});
 }
 

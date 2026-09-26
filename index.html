@@ -31,6 +31,9 @@ a{color:var(--blue)}
 .dot{width:9px;height:9px;border-radius:50%;background:#46505C}
 .dot.on{background:var(--green)}
 .dot.flash{background:#BFF3C8}
+.swatch{width:20px;height:20px;padding:0;border-radius:5px;border:1px solid #0006;cursor:pointer}
+.swatch:hover{outline:2px solid var(--blue);outline-offset:1px}
+.swatch.on{outline:2px solid var(--text);outline-offset:1px}
 
 #workspace{position:relative;height:calc(100% - 53px);overflow:hidden}
 .win{position:absolute;background:rgba(27,34,44,.9);border:1px solid var(--line);border-radius:10px;
@@ -65,10 +68,13 @@ a{color:var(--blue)}
 
 .arrows{display:flex;align-items:center;justify-content:center;gap:5%;height:100%}
 .arrows svg{height:86%;width:45%;cursor:pointer}
-.cue-arrow polygon{opacity:.15}
-.cue-arrow.next polygon{fill:var(--green)}
-.cue-arrow.back polygon{fill:var(--red)}
-.cue-arrow.fire polygon{
+.cue-arrow polygon,.cue-arrow path,.cue-arrow circle{opacity:.4}
+.cue-arrow.next polygon,.cue-arrow.next path,.cue-arrow.next circle{fill:var(--green)}
+.cue-arrow.back polygon,.cue-arrow.back path,.cue-arrow.back circle{fill:var(--red)}
+.cue-arrow text{opacity:.45;font-size:66px}
+
+/* classic: solid triangle, light sweeps left to right */
+.cue-arrow.style-classic.fire .shape{
   -webkit-mask-image:linear-gradient(90deg,#000 0 48%,transparent 78%);
   mask-image:linear-gradient(90deg,#000 0 48%,transparent 78%);
   -webkit-mask-size:230% 100%;mask-size:230% 100%;
@@ -76,8 +82,45 @@ a{color:var(--blue)}
   animation:lightUp .75s ease-out}
 @keyframes lightUp{
   0%{opacity:1;-webkit-mask-position:100% 0;mask-position:100% 0}
-  55%{opacity:1;-webkit-mask-position:0% 0;mask-position:0% 0}
-  100%{opacity:.15;-webkit-mask-position:0% 0;mask-position:0% 0}}
+  50%{opacity:1;-webkit-mask-position:0% 0;mask-position:0% 0}
+  78%{opacity:1;-webkit-mask-position:0% 0;mask-position:0% 0}
+  100%{opacity:.4;-webkit-mask-position:0% 0;mask-position:0% 0}}
+
+/* chase: three chevrons in sequence */
+.cue-arrow.style-chase.fire .ch1{animation:flare .7s ease-out 0s}
+.cue-arrow.style-chase.fire .ch2{animation:flare .7s ease-out .1s}
+.cue-arrow.style-chase.fire .ch3{animation:flare .7s ease-out .2s}
+@keyframes flare{0%{opacity:.4}15%{opacity:1}60%{opacity:1}100%{opacity:.4}}
+
+/* star: pops and spins */
+.cue-arrow.style-star .shape{transform-box:fill-box;transform-origin:center}
+.cue-arrow.style-star.fire .shape{animation:starPop .75s cubic-bezier(.2,1.4,.4,1)}
+@keyframes starPop{0%{opacity:.4;transform:scale(.55) rotate(-35deg)}
+  45%{opacity:1;transform:scale(1.12) rotate(8deg)}
+  70%{opacity:1;transform:scale(1) rotate(0)}
+  100%{opacity:.4;transform:scale(1) rotate(0)}}
+
+/* sparks: triangle throws particles */
+.cue-arrow.style-sparks.fire .shape{animation:flare .75s ease-out}
+.cue-arrow.style-sparks circle{opacity:0}
+.cue-arrow.style-sparks.fire circle{animation:spark .7s ease-out}
+.cue-arrow.style-sparks.fire .s2{animation-delay:.04s}
+.cue-arrow.style-sparks.fire .s3{animation-delay:.08s}
+.cue-arrow.style-sparks.fire .s4{animation-delay:.02s}
+.cue-arrow.style-sparks.fire .s5{animation-delay:.1s}
+.cue-arrow.style-sparks.fire .s6{animation-delay:.06s}
+@keyframes spark{0%{opacity:0;transform:translate(0,0) scale(.4)}
+  20%{opacity:1}
+  100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.1)}}
+.cue-arrow.style-sparks circle{transform-box:fill-box;transform-origin:center}
+
+/* pointer: a finger that jabs */
+.cue-arrow.style-pointer .shape{transform-box:fill-box;transform-origin:center}
+.cue-arrow.style-pointer.fire .shape{animation:jab .75s ease-out}
+@keyframes jab{0%{opacity:.45;transform:translateX(-14px) scale(.9)}
+  35%{opacity:1;transform:translateX(10px) scale(1.12)}
+  65%{opacity:1;transform:translateX(0) scale(1)}
+  100%{opacity:.45;transform:translateX(0) scale(1)}}
 
 .count{font-weight:500;font-variant-numeric:tabular-nums;line-height:1;text-align:center;font-size:min(34cqh,40cqw)}
 .row{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
@@ -109,8 +152,23 @@ body.popout .win header{display:none}
   <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
   <button class="primary" id="connect">Connect a dongle</button>
   <button id="reset">Reset count</button>
-  <label class="pill" for="bgFile" style="cursor:pointer">Background<input id="bgFile" type="file" accept="image/*" hidden></label>
-  <button id="bgClear">Clear</button>
+  <span class="pill" style="gap:5px">Background
+    <button class="swatch" data-color="#00B140" title="Chroma green" style="background:#00B140"></button>
+    <button class="swatch" data-color="#0047BB" title="Chroma blue" style="background:#0047BB"></button>
+    <button class="swatch" data-color="#B4232A" title="Red" style="background:#B4232A"></button>
+    <button class="swatch" data-color="#000000" title="Black" style="background:#000"></button>
+  </span>
+  <label class="pill" for="bgFile" style="cursor:pointer">Photo<input id="bgFile" type="file" accept="image/*" hidden></label>
+  <button id="bgClear">None</button>
+  <label class="pill" style="gap:6px">Arrows
+    <select id="arrowStyle" style="background:#131920;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font:inherit">
+      <option value="classic">Classic</option>
+      <option value="chase">Chase</option>
+      <option value="star">Stars</option>
+      <option value="sparks">Sparks</option>
+      <option value="pointer">Finger</option>
+    </select>
+  </label>
   <button id="resetLayout">Reset layout</button>
 </div>
 
@@ -130,8 +188,8 @@ body.popout .win header{display:none}
     <header><span class="name">Cue lights</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
     <div class="body">
       <div class="arrows">
-        <svg viewBox="0 0 100 100" role="img" aria-label="Back cue" id="arrowBack" class="cue-arrow back"><polygon points="95,8 95,92 8,50"/></svg>
-        <svg viewBox="0 0 100 100" role="img" aria-label="Next cue" id="arrowNext" class="cue-arrow next"><polygon points="5,8 5,92 92,50"/></svg>
+        <svg viewBox="0 0 100 100" role="img" aria-label="Back cue" id="arrowBack" class="cue-arrow back style-classic"></svg>
+        <svg viewBox="0 0 100 100" role="img" aria-label="Next cue" id="arrowNext" class="cue-arrow next style-classic"></svg>
       </div>
     </div>
     <div class="grip"></div>
@@ -238,9 +296,10 @@ function loadSaved() {
     }
     if (typeof saved.slide === 'number') state.slide = saved.slide;
     if (saved.dbUrl && $('dbUrl')) $('dbUrl').value = saved.dbUrl;
+    if (saved.arrowStyle) arrowStyle = saved.arrowStyle;
     if (saved.showKey) showKey = saved.showKey;
-    const bg = localStorage.getItem('cue-console-bg');
-    if (bg && $('bgLayer')) $('bgLayer').style.backgroundImage = `url(${bg})`;
+    const bg = readBg();
+    applyBackground(bg, false);
   } catch {}
 }
 function save() {
@@ -251,8 +310,70 @@ function save() {
       layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height,
                        min: w.dataset.min === '1', clear: w.classList.contains('clear') };
     });
-    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey }));
+    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey }));
   } catch {}
+}
+
+/* ---------- Arrow styles ---------- */
+const arrowIdPrefix = 'arrow';
+const ARROW_STYLES = {
+  classic: '<polygon class="shape" points="8,10 8,90 94,50"/>',
+  chase: ['<g class="ch1" transform="translate(4,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g>',
+          '<g class="ch2" transform="translate(34,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g>',
+          '<g class="ch3" transform="translate(64,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g>'].join(''),
+  star: '<polygon class="shape" points="50,5 61,37 95,37 67,57 78,92 50,71 22,92 33,57 5,37 39,37"/>',
+  sparks: '<polygon class="shape" points="10,16 10,84 82,50"/>' +
+    [[26,-22],[34,-4],[28,16],[18,-30],[36,8],[22,26]].map((d, i) =>
+      `<circle class="s${i+1}" cx="78" cy="50" r="5" style="--dx:${d[0]}px;--dy:${d[1]}px"/>`).join(''),
+  pointer: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F449}</text>'
+};
+const ARROW_NAMES = { classic: 'Classic', chase: 'Chase', star: 'Stars', sparks: 'Sparks', pointer: 'Finger' };
+
+function paintArrows(style) {
+  const s = ARROW_STYLES[style] ? style : 'classic';
+  for (const dir of ['Next', 'Back']) {
+    const svg = document.getElementById(arrowIdPrefix + dir);
+    if (!svg) continue;
+    const inner = ARROW_STYLES[s];
+    svg.innerHTML = dir === 'Back'
+      ? `<g transform="scale(-1,1) translate(-100,0)">${inner}</g>`
+      : inner;
+    svg.setAttribute('class', `cue-arrow ${dir.toLowerCase()} style-${s}`);
+  }
+}
+let arrowStyle = 'classic';
+
+/* ---------- Background ---------- */
+function readBg() {
+  try {
+    const raw = localStorage.getItem('cue-console-bg');
+    if (!raw) return null;
+    if (raw.startsWith('{')) return JSON.parse(raw);
+    return { type: 'image', value: raw };
+  } catch { return null; }
+}
+function applyBackground(bg, store) {
+  const layer = $('bgLayer');
+  if (!layer) return;
+  if (!bg) {
+    layer.style.backgroundImage = '';
+    layer.style.backgroundColor = '';
+  } else if (bg.type === 'color') {
+    layer.style.backgroundImage = '';
+    layer.style.backgroundColor = bg.value;
+  } else {
+    layer.style.backgroundColor = '';
+    layer.style.backgroundImage = `url(${bg.value})`;
+  }
+  document.querySelectorAll('.swatch').forEach(b => {
+    b.classList.toggle('on', !!bg && bg.type === 'color' && b.dataset.color === bg.value);
+  });
+  if (store) {
+    try {
+      if (bg) localStorage.setItem('cue-console-bg', JSON.stringify(bg));
+      else localStorage.removeItem('cue-console-bg');
+    } catch {}
+  }
 }
 
 /* ---------- Move, resize, minimize ---------- */
@@ -500,16 +621,17 @@ function publish(force) {
     slide: state.slide,
     lastCue: state.log.length ? state.log[state.log.length - 1] : null,
     connected: state.connected,
+    arrowStyle,
     at: now
   };
   fetch(`${dbBase()}/shows/${showKey}/state.json`, { method: 'PUT', body: JSON.stringify(payload) })
     .then(r => { $('shareState').textContent = r.ok ? `Sharing · updated ${clockOf(Date.now())}` : `Share error ${r.status}`; })
     .catch(() => { $('shareState').textContent = 'Share failed — check the database URL and rules.'; });
 }
-function publishBackground(dataUrl) {
+function publishBackground(bg) {
   if (!dbBase()) return;
   if (!showKey) refreshLink();
-  fetch(`${dbBase()}/shows/${showKey}/bg.json`, { method: 'PUT', body: JSON.stringify(dataUrl || null) })
+  fetch(`${dbBase()}/shows/${showKey}/bg.json`, { method: 'PUT', body: JSON.stringify(bg || null) })
     .catch(() => {});
 }
 
@@ -518,7 +640,7 @@ if (!popoutPanel) {
   $('dbUrl').addEventListener('change', () => {
     refreshLink();
     publish(true);
-    const bg = localStorage.getItem('cue-console-bg');
+    const bg = readBg();
     if (bg) publishBackground(bg);
   });
   $('copyLink').addEventListener('click', () => {
@@ -528,7 +650,7 @@ if (!popoutPanel) {
     showKey = Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
     refreshLink();
     publish(true);
-    const bg = localStorage.getItem('cue-console-bg');
+    const bg = readBg();
     if (bg) publishBackground(bg);
   });
   setInterval(() => publish(), 2000);
@@ -536,6 +658,12 @@ if (!popoutPanel) {
   document.querySelectorAll('.clearbg').forEach(btn => btn.addEventListener('click', () => {
     btn.closest('.win').classList.toggle('clear');
     save();
+  }));
+
+  document.querySelectorAll('.swatch').forEach(btn => btn.addEventListener('click', () => {
+    const bg = { type: 'color', value: btn.dataset.color };
+    applyBackground(bg, true);
+    publishBackground(bg);
   }));
 
   $('bgFile').addEventListener('change', e => {
@@ -550,25 +678,24 @@ if (!popoutPanel) {
         c.width = Math.round(img.width * scale);
         c.height = Math.round(img.height * scale);
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        const data = c.toDataURL('image/jpeg', 0.82);
-        $('bgLayer').style.backgroundImage = `url(${data})`;
-        try { localStorage.setItem('cue-console-bg', data); } catch {}
+        applyBackground({ type: 'image', value: c.toDataURL('image/jpeg', 0.82) }, true);
         const small = document.createElement('canvas');
         const s2 = Math.min(1, 1400 / c.width);
         small.width = Math.round(c.width * s2);
         small.height = Math.round(c.height * s2);
         small.getContext('2d').drawImage(c, 0, 0, small.width, small.height);
-        publishBackground(small.toDataURL('image/jpeg', 0.7));
+        publishBackground({ type: 'image', value: small.toDataURL('image/jpeg', 0.7) });
       };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
   });
+
   $('bgClear').addEventListener('click', () => {
-    $('bgLayer').style.backgroundImage = '';
-    try { localStorage.removeItem('cue-console-bg'); } catch {}
+    applyBackground(null, true);
     publishBackground(null);
   });
+
   $('resetLayout').addEventListener('click', () => {
     try {
       const raw = JSON.parse(localStorage.getItem('cue-console') || '{}');
@@ -583,6 +710,12 @@ if (!popoutPanel) {
   });
   $('plus').addEventListener('click', () => applyCue('next'));
   $('minus').addEventListener('click', () => applyCue('back'));
+  $('arrowStyle').addEventListener('change', e => {
+    arrowStyle = e.target.value;
+    paintArrows(arrowStyle);
+    save();
+    publish(true);
+  });
   $('arrowNext').addEventListener('click', () => applyCue('next'));
   $('arrowBack').addEventListener('click', () => applyCue('back'));
 }
@@ -613,6 +746,8 @@ if (!popoutPanel && 'hid' in navigator) {
 }
 
 loadSaved();
+if ($('arrowStyle')) $('arrowStyle').value = arrowStyle;
+paintArrows(arrowStyle);
 render();
 if (!popoutPanel) { refreshLink(); publish(true); }
 </script>
