@@ -89,8 +89,7 @@ body.popout .win header .pop{display:none}
   <h1>Cue Console</h1>
   <span class="pill"><span class="dot" id="dot"></span><span id="status">Cues: not connected</span></span>
   <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
-  <button class="primary" id="connect">Connect cues</button>
-  <button class="primary" id="connectTimer">Connect timer</button>
+  <button class="primary" id="connect">Connect a dongle</button>
   <button id="reset">Reset count</button>
   <button id="resetLayout">Reset layout</button>
 </div>
@@ -100,18 +99,8 @@ body.popout .win header .pop{display:none}
     <header><span class="name">Speaker timer</span><button class="pop" title="Open in its own window">Pop out</button></header>
     <div class="body">
       <div class="timer">
-        <div class="time green" id="time">10:00</div>
-        <div class="tcontrols">
-          <button class="primary" id="tStart">Start</button>
-          <button id="tReset">Reset</button>
-          <button id="tMinus">&minus;1 min</button>
-          <button id="tPlus">+1 min</button>
-        </div>
-        <div class="tset">
-          <label>Total <input id="tTotal" value="10:00" inputmode="numeric"></label>
-          <label>Yellow at <input id="tYellow" value="2:00" inputmode="numeric"></label>
-          <label>Red at <input id="tRed" value="0:30" inputmode="numeric"></label>
-        </div>
+        <div class="time green" id="time">--:--</div>
+        <div class="sub" id="tSource">Waiting for the speaker timer</div>
       </div>
     </div>
     <div class="grip"></div>
@@ -177,7 +166,6 @@ const state = {
   log: [],
   holds: [],
   lastCueAt: null,
-  timer: { total: 600, yellow: 120, red: 30, left: 600, running: false, since: null },
   live: null   // { total, yellow, elapsed, running } straight from the Limitimer
 };
 
@@ -239,16 +227,6 @@ function loadSaved() {
       }
     }
     if (typeof saved.slide === 'number') state.slide = saved.slide;
-    if (saved.timer) {
-      Object.assign(state.timer, saved.timer);
-      state.timer.running = false;
-      state.timer.since = null;
-      if ($('tTotal')) {
-        $('tTotal').value = fmtTime(state.timer.total);
-        $('tYellow').value = fmtTime(state.timer.yellow);
-        $('tRed').value = fmtTime(state.timer.red);
-      }
-    }
   } catch {}
 }
 function save() {
@@ -258,7 +236,7 @@ function save() {
     document.querySelectorAll('.win').forEach(w => {
       layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height };
     });
-    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, timer: state.timer }));
+    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide }));
   } catch {}
 }
 
@@ -354,90 +332,29 @@ function render() {
 }
 setInterval(() => { if ($('sHold')) render(); }, 1000);
 
-/* ---------- Speaker timer ---------- */
-function parseTime(text) {
-  const parts = String(text).trim().split(':');
-  if (parts.length === 2) {
-    const m = parseInt(parts[0], 10), sec = parseInt(parts[1], 10);
-    if (isNaN(m) || isNaN(sec)) return null;
-    return m * 60 + sec;
-  }
-  const n = parseFloat(text);
-  return isNaN(n) ? null : Math.round(n * 60);
-}
+/* ---------- Speaker timer (live from the Limitimer) ---------- */
 function fmtTime(sec) {
   const over = sec < 0;
   const a = Math.abs(Math.round(sec));
   return `${over ? '+' : ''}${Math.floor(a / 60)}:${pad(a % 60)}`;
 }
-function timeLeft() {
-  const t = state.timer;
-  if (!t.running || !t.since) return t.left;
-  return t.left - (Date.now() - t.since) / 1000;
-}
 function renderTimer() {
   const el = $('time');
   if (!el) return;
   const live = state.live;
-  const t = state.timer;
-  const left = live ? live.total - live.elapsed : timeLeft();
-  const yellowAt = live ? live.yellow : t.yellow;
-  el.textContent = fmtTime(left);
-  const tone = left <= 0 ? 'red' : left <= yellowAt ? 'amber' : 'green';
-  el.className = 'time ' + tone + (left <= 0 ? ' over' : '');
   const src = $('tSource');
-  if (src) src.textContent = live
-    ? `Limitimer  ·  set ${fmtTime(live.total)}, yellow at ${fmtTime(live.yellow)}  ·  ${live.running ? 'running' : 'stopped'}`
-    : 'Manual timer';
-  const btn = $('tStart');
-  if (btn) {
-    btn.disabled = !!live;
-    btn.textContent = live ? 'Run from timer' : (t.running ? 'Pause' : (timeLeft() !== t.total || t.since ? 'Resume' : 'Start'));
+  if (!live) {
+    el.textContent = '--:--';
+    el.className = 'time';
+    if (src) src.textContent = state.timerConnected ? 'Connected, waiting for data' : 'Waiting for the speaker timer';
+    return;
   }
-  ['tReset','tPlus','tMinus','tTotal','tYellow','tRed'].forEach(id => { const e = $(id); if (e) e.disabled = !!live; });
+  const left = live.total - live.elapsed;
+  el.textContent = fmtTime(left);
+  const tone = left <= 0 ? 'red' : left <= live.yellow ? 'amber' : 'green';
+  el.className = 'time ' + tone + (left <= 0 ? ' over' : '');
+  if (src) src.textContent = `Set ${fmtTime(live.total)} · yellow at ${fmtTime(live.yellow)} · ${live.running ? 'running' : 'stopped'}`;
 }
-function timerChanged() {
-  renderTimer();
-  save();
-  broadcast();
-}
-function startPause() {
-  const t = state.timer;
-  if (t.running) {
-    t.left = timeLeft();
-    t.running = false;
-    t.since = null;
-  } else {
-    t.running = true;
-    t.since = Date.now();
-  }
-  timerChanged();
-}
-function resetTimer() {
-  const t = state.timer;
-  t.running = false;
-  t.since = null;
-  t.left = t.total;
-  timerChanged();
-}
-function nudge(seconds) {
-  const t = state.timer;
-  t.left = timeLeft() + seconds;
-  if (t.running) t.since = Date.now();
-  timerChanged();
-}
-function readSettings() {
-  const t = state.timer;
-  const total = parseTime($('tTotal').value);
-  const yellow = parseTime($('tYellow').value);
-  const red = parseTime($('tRed').value);
-  if (total != null) t.total = Math.max(0, total);
-  if (yellow != null) t.yellow = Math.max(0, yellow);
-  if (red != null) t.red = Math.max(0, red);
-  if (!t.running && !t.since) t.left = t.total;
-  timerChanged();
-}
-setInterval(renderTimer, 200);
 
 /* ---------- Cue handling ---------- */
 let lastCode = null, lastAt = 0;
@@ -490,23 +407,43 @@ function onReport(bytes) {
 }
 
 /* ---------- Devices ---------- */
-let cueDevice = null, timerDevice = null;
-let timerBytes = [];
+const attached = [];
+const roles = [];
 let liveSeen = 0;
 
-async function attach(d, mode) {
+async function attach(d) {
   try { if (!d.opened) await d.open(); } catch { return false; }
-  if (mode === 'cue') {
-    cueDevice = d;
-    d.addEventListener('inputreport', e => onReport(new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength)));
+  if (attached.includes(d)) return true;
+  attached.push(d);
+  const role = { device: d, kind: null, timerSeen: 0 };
+  roles.push(role);
+
+  d.addEventListener('inputreport', e => {
+    const bytes = new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength);
+    if (role.kind === 'cue') { onReport(bytes); return; }
+    if (role.kind === 'timer') { onTimerReport(role, bytes); return; }
+    // still deciding: a cue press identifies itself instantly
+    if (bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f) {
+      role.kind = 'cue';
+      state.connected = true;
+      render();
+      onReport(bytes);
+      return;
+    }
+    onTimerReport(role, bytes);
+  });
+
+  // ask for timer mode first; if no timer packets arrive, switch it to cue mode
+  await sendMode(d, 0x00);
+  setTimeout(async () => {
+    if (role.kind) return;
     await sendMode(d, 0x01);
+    role.kind = 'cue';
     state.connected = true;
-  } else {
-    timerDevice = d;
-    d.addEventListener('inputreport', e => onTimerReport(new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength)));
-    await sendMode(d, 0x00);
-    state.timerConnected = true;
-  }
+    render();
+    broadcast();
+  }, 2500);
+
   render();
   broadcast();
   return true;
@@ -519,20 +456,26 @@ async function sendMode(d, mode) {
   try { await d.sendReport(0, cmd); return true; } catch { return false; }
 }
 
-function onTimerReport(bytes) {
+function onTimerReport(role, bytes) {
   const n = bytes[0];
   if (!n || n > 7) return;
-  for (let i = 1; i <= n; i++) timerBytes.push(bytes[i]);
+  role.buf = role.buf || [];
+  for (let i = 1; i <= n; i++) role.buf.push(bytes[i]);
   let i = 0;
-  while (i < timerBytes.length - 52) {
-    if (timerBytes[i] === 0x81 && timerBytes[i+1] === 0x00 && timerBytes[i+2] === 0x20 && timerBytes[i+3] === 0x2f) {
-      applyLive(timerBytes.slice(i, i + 52));
+  while (i < role.buf.length - 52) {
+    if (role.buf[i] === 0x81 && role.buf[i+1] === 0x00 && role.buf[i+2] === 0x20 && role.buf[i+3] === 0x2f
+        && role.buf[i+51] === 0x83) {
+      role.kind = 'timer';
+      state.timerConnected = true;
+      applyLive(role.buf.slice(i, i + 52));
       i += 52;
     } else i++;
   }
-  timerBytes = timerBytes.slice(i);
-  if (timerBytes.length > 4096) timerBytes = [];
+  role.buf = role.buf.slice(i);
+  if (role.buf.length > 4096) role.buf = [];
 }
+
+let candidate = null;
 
 function applyLive(b) {
   const live = {
@@ -541,8 +484,18 @@ function applyLive(b) {
     elapsed: b[15] * 256 + b[16],
     running: b[6] === 1
   };
-  if (live.total > 86400 || live.elapsed > 86400) return;
+  if (live.total > 86400 || live.elapsed > 86400 || live.yellow > live.total) return;
   liveSeen = Date.now();
+
+  // a reading only counts once the dongle repeats it, which filters out garbled packets
+  const key = `${live.total}|${live.yellow}|${live.elapsed}|${live.running}`;
+  const cur = state.live;
+  const same = cur && cur.total === live.total && cur.yellow === live.yellow
+    && cur.elapsed === live.elapsed && cur.running === live.running;
+  if (!same) {
+    if (candidate !== key) { candidate = key; return; }
+  }
+  candidate = key;
   const prev = state.live;
   state.live = live;
   if (!prev || prev.total !== live.total || prev.yellow !== live.yellow ||
@@ -563,13 +516,12 @@ setInterval(() => {
 }, 1000);
 
 if (!popoutPanel && 'hid' in navigator) {
-  async function pick(mode) {
+  $('connect').addEventListener('click', async () => {
     let list = [];
     try { list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID, productId: PID }] }); } catch {}
-    if (list.length) await attach(list[0], mode);
-  }
-  $('connect').addEventListener('click', () => pick('cue'));
-  $('connectTimer').addEventListener('click', () => pick('timer'));
+    for (const d of list) await attach(d);
+  });
+
   $('reset').addEventListener('click', () => {
     state.slide = 0;
     state.total = 0;
@@ -582,11 +534,6 @@ if (!popoutPanel && 'hid' in navigator) {
   });
   $('plus').addEventListener('click', () => applyCue('next'));
   $('minus').addEventListener('click', () => applyCue('back'));
-  $('tStart').addEventListener('click', startPause);
-  $('tReset').addEventListener('click', resetTimer);
-  $('tPlus').addEventListener('click', () => nudge(60));
-  $('tMinus').addEventListener('click', () => nudge(-60));
-  ['tTotal', 'tYellow', 'tRed'].forEach(id => $(id).addEventListener('change', readSettings));
   $('resetLayout').addEventListener('click', () => {
     try {
       const raw = JSON.parse(localStorage.getItem('cue-console') || '{}');
@@ -599,21 +546,25 @@ if (!popoutPanel && 'hid' in navigator) {
   $('arrowBack').addEventListener('click', () => applyCue('back'));
 
   navigator.hid.getDevices().then(async devices => {
-    const known = devices.filter(d => d.vendorId === VID && d.productId === PID);
-    if (known[0]) await attach(known[0], 'cue');
-    if (known[1]) await attach(known[1], 'timer');
+    for (const d of devices.filter(x => x.vendorId === VID && x.productId === PID)) await attach(d);
   }).catch(() => {});
 
   navigator.hid.addEventListener('disconnect', e => {
-    if (cueDevice && e.device === cueDevice) { cueDevice = null; state.connected = false; }
-    if (timerDevice && e.device === timerDevice) { timerDevice = null; state.timerConnected = false; state.live = null; }
+    const i = attached.indexOf(e.device);
+    if (i >= 0) attached.splice(i, 1);
+    const r = roles.findIndex(x => x.device === e.device);
+    if (r >= 0) {
+      if (roles[r].kind === 'cue') state.connected = false;
+      if (roles[r].kind === 'timer') { state.timerConnected = false; state.live = null; }
+      roles.splice(r, 1);
+    }
     render();
     broadcast();
   });
+
 } else if (!popoutPanel) {
   $('status').textContent = 'This browser cannot read the hardware. Use Chrome or Edge.';
   $('connect').disabled = true;
-  $('connectTimer').disabled = true;
 }
 
 loadSaved();
