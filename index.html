@@ -46,6 +46,21 @@ button.primary:hover{background:#2660A8}
 .arrow.hit{opacity:1}
 .win#win-arrows .body{padding:14px}
 
+.timer{display:flex;flex-direction:column;height:100%}
+.time{flex:1;display:flex;align-items:center;justify-content:center;font-weight:500;
+  font-variant-numeric:tabular-nums;line-height:1;font-size:clamp(44px,20vh,150px);letter-spacing:-.02em}
+.time.green{color:var(--green)}
+.time.amber{color:var(--amber)}
+.time.red{color:var(--red)}
+.time.over{animation:blink 1s steps(2,end) infinite}
+@keyframes blink{50%{opacity:.35}}
+.tcontrols{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.tset{display:flex;gap:10px;justify-content:center;margin-top:10px;color:var(--dim);font-size:13px;flex-wrap:wrap}
+.tset label{display:flex;align-items:center;gap:5px}
+.tset input{width:62px;background:#131920;border:1px solid var(--line);border-radius:6px;
+  padding:4px 6px;color:var(--text);font:13px "IBM Plex Mono",ui-monospace,monospace;text-align:center}
+body.popout .tcontrols,body.popout .tset{display:none}
+
 .count{font-weight:500;font-variant-numeric:tabular-nums;line-height:1;font-size:clamp(48px,18vh,120px);text-align:center;margin:6px 0 10px}
 .sub{color:var(--dim);font-size:13px;text-align:center}
 .row{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
@@ -72,14 +87,37 @@ body.popout .win header .pop{display:none}
 
 <div id="bar">
   <h1>Cue Console</h1>
-  <span class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></span>
-  <button class="primary" id="connect">Connect cue system</button>
-  <button id="wake">Resend wake-up</button>
+  <span class="pill"><span class="dot" id="dot"></span><span id="status">Cues: not connected</span></span>
+  <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
+  <button class="primary" id="connect">Connect cues</button>
+  <button class="primary" id="connectTimer">Connect timer</button>
   <button id="reset">Reset count</button>
+  <button id="resetLayout">Reset layout</button>
 </div>
 
 <div id="workspace">
-  <section class="win" id="win-arrows" style="left:20px;top:20px;width:540px;height:300px">
+  <section class="win" id="win-timer" style="left:20px;top:20px;width:560px;height:340px">
+    <header><span class="name">Speaker timer</span><button class="pop" title="Open in its own window">Pop out</button></header>
+    <div class="body">
+      <div class="timer">
+        <div class="time green" id="time">10:00</div>
+        <div class="tcontrols">
+          <button class="primary" id="tStart">Start</button>
+          <button id="tReset">Reset</button>
+          <button id="tMinus">&minus;1 min</button>
+          <button id="tPlus">+1 min</button>
+        </div>
+        <div class="tset">
+          <label>Total <input id="tTotal" value="10:00" inputmode="numeric"></label>
+          <label>Yellow at <input id="tYellow" value="2:00" inputmode="numeric"></label>
+          <label>Red at <input id="tRed" value="0:30" inputmode="numeric"></label>
+        </div>
+      </div>
+    </div>
+    <div class="grip"></div>
+  </section>
+
+  <section class="win" id="win-arrows" style="left:600px;top:20px;width:420px;height:250px">
     <header><span class="name">Cue lights</span><button class="pop" title="Open in its own window">Pop out</button></header>
     <div class="body">
       <div class="arrows">
@@ -90,7 +128,7 @@ body.popout .win header .pop{display:none}
     <div class="grip"></div>
   </section>
 
-  <section class="win" id="win-slide" style="left:20px;top:340px;width:260px;height:260px">
+  <section class="win" id="win-slide" style="left:20px;top:380px;width:270px;height:230px">
     <header><span class="name">Slide</span><button class="pop" title="Open in its own window">Pop out</button></header>
     <div class="body">
       <div class="count" id="slideCount">0</div>
@@ -103,13 +141,13 @@ body.popout .win header .pop{display:none}
     <div class="grip"></div>
   </section>
 
-  <section class="win" id="win-log" style="left:580px;top:20px;width:380px;height:420px">
+  <section class="win" id="win-log" style="left:600px;top:290px;width:420px;height:330px">
     <header><span class="name">Cue log</span><button class="pop" title="Open in its own window">Pop out</button></header>
     <div class="body"><div id="log"><div class="empty">Waiting for the first cue.</div></div></div>
     <div class="grip"></div>
   </section>
 
-  <section class="win" id="win-stats" style="left:300px;top:340px;width:260px;height:260px">
+  <section class="win" id="win-stats" style="left:310px;top:380px;width:270px;height:230px">
     <header><span class="name">Pace</span><button class="pop" title="Open in its own window">Pop out</button></header>
     <div class="body">
       <div class="stat"><span>On this slide</span><span id="sHold">—</span></div>
@@ -138,7 +176,9 @@ const state = {
   total: 0,
   log: [],
   holds: [],
-  lastCueAt: null
+  lastCueAt: null,
+  timer: { total: 600, yellow: 120, red: 30, left: 600, running: false, since: null },
+  live: null   // { total, yellow, elapsed, running } straight from the Limitimer
 };
 
 const $ = id => document.getElementById(id);
@@ -183,6 +223,7 @@ function broadcast() {
 channel.addEventListener('message', e => {
   if (!popoutPanel && e.data && e.data.type === 'hello') broadcast();
 });
+if (!popoutPanel) setInterval(broadcast, 5000);
 
 /* ---------- Saved layout and count ---------- */
 function loadSaved() {
@@ -198,6 +239,16 @@ function loadSaved() {
       }
     }
     if (typeof saved.slide === 'number') state.slide = saved.slide;
+    if (saved.timer) {
+      Object.assign(state.timer, saved.timer);
+      state.timer.running = false;
+      state.timer.since = null;
+      if ($('tTotal')) {
+        $('tTotal').value = fmtTime(state.timer.total);
+        $('tYellow').value = fmtTime(state.timer.yellow);
+        $('tRed').value = fmtTime(state.timer.red);
+      }
+    }
   } catch {}
 }
 function save() {
@@ -207,7 +258,7 @@ function save() {
     document.querySelectorAll('.win').forEach(w => {
       layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height };
     });
-    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide }));
+    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, timer: state.timer }));
   } catch {}
 }
 
@@ -265,6 +316,7 @@ if (!popoutPanel) {
 /* ---------- Rendering ---------- */
 function render() {
   const el = id => $(id);
+  renderTimer();
   if (el('slideCount')) el('slideCount').textContent = state.slide;
   if (el('slideSub')) {
     el('slideSub').textContent = state.lastCueAt
@@ -273,7 +325,11 @@ function render() {
   }
   if (el('dot')) {
     el('dot').classList.toggle('on', state.connected);
-    el('status').textContent = state.connected ? 'Cue system connected' : 'Not connected';
+    el('status').textContent = state.connected ? 'Cues: connected' : 'Cues: not connected';
+  }
+  if (el('dotT')) {
+    el('dotT').classList.toggle('on', !!state.live);
+    el('statusT').textContent = state.live ? 'Timer: live' : (state.timerConnected ? 'Timer: waiting for data' : 'Timer: not connected');
   }
   if (el('log')) {
     const box = el('log');
@@ -297,6 +353,91 @@ function render() {
   }
 }
 setInterval(() => { if ($('sHold')) render(); }, 1000);
+
+/* ---------- Speaker timer ---------- */
+function parseTime(text) {
+  const parts = String(text).trim().split(':');
+  if (parts.length === 2) {
+    const m = parseInt(parts[0], 10), sec = parseInt(parts[1], 10);
+    if (isNaN(m) || isNaN(sec)) return null;
+    return m * 60 + sec;
+  }
+  const n = parseFloat(text);
+  return isNaN(n) ? null : Math.round(n * 60);
+}
+function fmtTime(sec) {
+  const over = sec < 0;
+  const a = Math.abs(Math.round(sec));
+  return `${over ? '+' : ''}${Math.floor(a / 60)}:${pad(a % 60)}`;
+}
+function timeLeft() {
+  const t = state.timer;
+  if (!t.running || !t.since) return t.left;
+  return t.left - (Date.now() - t.since) / 1000;
+}
+function renderTimer() {
+  const el = $('time');
+  if (!el) return;
+  const live = state.live;
+  const t = state.timer;
+  const left = live ? live.total - live.elapsed : timeLeft();
+  const yellowAt = live ? live.yellow : t.yellow;
+  el.textContent = fmtTime(left);
+  const tone = left <= 0 ? 'red' : left <= yellowAt ? 'amber' : 'green';
+  el.className = 'time ' + tone + (left <= 0 ? ' over' : '');
+  const src = $('tSource');
+  if (src) src.textContent = live
+    ? `Limitimer  ·  set ${fmtTime(live.total)}, yellow at ${fmtTime(live.yellow)}  ·  ${live.running ? 'running' : 'stopped'}`
+    : 'Manual timer';
+  const btn = $('tStart');
+  if (btn) {
+    btn.disabled = !!live;
+    btn.textContent = live ? 'Run from timer' : (t.running ? 'Pause' : (timeLeft() !== t.total || t.since ? 'Resume' : 'Start'));
+  }
+  ['tReset','tPlus','tMinus','tTotal','tYellow','tRed'].forEach(id => { const e = $(id); if (e) e.disabled = !!live; });
+}
+function timerChanged() {
+  renderTimer();
+  save();
+  broadcast();
+}
+function startPause() {
+  const t = state.timer;
+  if (t.running) {
+    t.left = timeLeft();
+    t.running = false;
+    t.since = null;
+  } else {
+    t.running = true;
+    t.since = Date.now();
+  }
+  timerChanged();
+}
+function resetTimer() {
+  const t = state.timer;
+  t.running = false;
+  t.since = null;
+  t.left = t.total;
+  timerChanged();
+}
+function nudge(seconds) {
+  const t = state.timer;
+  t.left = timeLeft() + seconds;
+  if (t.running) t.since = Date.now();
+  timerChanged();
+}
+function readSettings() {
+  const t = state.timer;
+  const total = parseTime($('tTotal').value);
+  const yellow = parseTime($('tYellow').value);
+  const red = parseTime($('tRed').value);
+  if (total != null) t.total = Math.max(0, total);
+  if (yellow != null) t.yellow = Math.max(0, yellow);
+  if (red != null) t.red = Math.max(0, red);
+  if (!t.running && !t.since) t.left = t.total;
+  timerChanged();
+}
+setInterval(renderTimer, 200);
 
 /* ---------- Cue handling ---------- */
 let lastCode = null, lastAt = 0;
@@ -348,46 +489,87 @@ function onReport(bytes) {
   applyCue(code === 0x00 ? 'next' : 'back');
 }
 
-/* ---------- Device ---------- */
-let device = null;
+/* ---------- Devices ---------- */
+let cueDevice = null, timerDevice = null;
+let timerBytes = [];
+let liveSeen = 0;
 
-async function attach(d) {
-  try {
-    if (!d.opened) await d.open();
-  } catch (e) {
-    state.connected = false;
-    render();
-    return false;
+async function attach(d, mode) {
+  try { if (!d.opened) await d.open(); } catch { return false; }
+  if (mode === 'cue') {
+    cueDevice = d;
+    d.addEventListener('inputreport', e => onReport(new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength)));
+    await sendMode(d, 0x01);
+    state.connected = true;
+  } else {
+    timerDevice = d;
+    d.addEventListener('inputreport', e => onTimerReport(new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength)));
+    await sendMode(d, 0x00);
+    state.timerConnected = true;
   }
-  device = d;
-  d.addEventListener('inputreport', e => {
-    onReport(new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength));
-  });
-  await wake();
-  state.connected = true;
   render();
   broadcast();
   return true;
 }
 
-async function wake() {
-  if (!device) return false;
+async function sendMode(d, mode) {
   const cmd = new Uint8Array(64);
   cmd[0] = 0x8d;
-  cmd[1] = 0x01;
-  try { await device.sendReport(0, cmd); return true; } catch { return false; }
+  cmd[1] = mode;
+  try { await d.sendReport(0, cmd); return true; } catch { return false; }
 }
 
-if (!popoutPanel && 'hid' in navigator) {
-  $('connect').addEventListener('click', async () => {
-    let list = [];
-    try {
-      list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID, productId: PID }] });
-    } catch {}
-    if (list.length) await attach(list[0]);
-  });
+function onTimerReport(bytes) {
+  const n = bytes[0];
+  if (!n || n > 7) return;
+  for (let i = 1; i <= n; i++) timerBytes.push(bytes[i]);
+  let i = 0;
+  while (i < timerBytes.length - 52) {
+    if (timerBytes[i] === 0x81 && timerBytes[i+1] === 0x00 && timerBytes[i+2] === 0x20 && timerBytes[i+3] === 0x2f) {
+      applyLive(timerBytes.slice(i, i + 52));
+      i += 52;
+    } else i++;
+  }
+  timerBytes = timerBytes.slice(i);
+  if (timerBytes.length > 4096) timerBytes = [];
+}
 
-  $('wake').addEventListener('click', wake);
+function applyLive(b) {
+  const live = {
+    total: b[9] * 256 + b[10],
+    yellow: b[12] * 256 + b[13],
+    elapsed: b[15] * 256 + b[16],
+    running: b[6] === 1
+  };
+  if (live.total > 86400 || live.elapsed > 86400) return;
+  liveSeen = Date.now();
+  const prev = state.live;
+  state.live = live;
+  if (!prev || prev.total !== live.total || prev.yellow !== live.yellow ||
+      prev.elapsed !== live.elapsed || prev.running !== live.running) {
+    renderTimer();
+    broadcast();
+  }
+}
+
+// drop back to the manual timer if the hardware goes quiet
+setInterval(() => {
+  if (state.live && Date.now() - liveSeen > 5000) {
+    state.live = null;
+    state.timerConnected = false;
+    render();
+    broadcast();
+  }
+}, 1000);
+
+if (!popoutPanel && 'hid' in navigator) {
+  async function pick(mode) {
+    let list = [];
+    try { list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID, productId: PID }] }); } catch {}
+    if (list.length) await attach(list[0], mode);
+  }
+  $('connect').addEventListener('click', () => pick('cue'));
+  $('connectTimer').addEventListener('click', () => pick('timer'));
   $('reset').addEventListener('click', () => {
     state.slide = 0;
     state.total = 0;
@@ -400,28 +582,38 @@ if (!popoutPanel && 'hid' in navigator) {
   });
   $('plus').addEventListener('click', () => applyCue('next'));
   $('minus').addEventListener('click', () => applyCue('back'));
+  $('tStart').addEventListener('click', startPause);
+  $('tReset').addEventListener('click', resetTimer);
+  $('tPlus').addEventListener('click', () => nudge(60));
+  $('tMinus').addEventListener('click', () => nudge(-60));
+  ['tTotal', 'tYellow', 'tRed'].forEach(id => $(id).addEventListener('change', readSettings));
+  $('resetLayout').addEventListener('click', () => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('cue-console') || '{}');
+      delete raw.layout;
+      localStorage.setItem('cue-console', JSON.stringify(raw));
+    } catch {}
+    location.reload();
+  });
   $('arrowNext').addEventListener('click', () => applyCue('next'));
   $('arrowBack').addEventListener('click', () => applyCue('back'));
 
   navigator.hid.getDevices().then(async devices => {
-    const known = devices.find(d => d.vendorId === VID && d.productId === PID);
-    if (known) await attach(known);
+    const known = devices.filter(d => d.vendorId === VID && d.productId === PID);
+    if (known[0]) await attach(known[0], 'cue');
+    if (known[1]) await attach(known[1], 'timer');
   }).catch(() => {});
 
   navigator.hid.addEventListener('disconnect', e => {
-    if (device && e.device === device) {
-      state.connected = false;
-      device = null;
-      render();
-      broadcast();
-    }
-  });
-  navigator.hid.addEventListener('connect', async e => {
-    if (!device && e.device.vendorId === VID && e.device.productId === PID) await attach(e.device);
+    if (cueDevice && e.device === cueDevice) { cueDevice = null; state.connected = false; }
+    if (timerDevice && e.device === timerDevice) { timerDevice = null; state.timerConnected = false; state.live = null; }
+    render();
+    broadcast();
   });
 } else if (!popoutPanel) {
-  $('status').textContent = 'This browser cannot read the cue system. Use Chrome or Edge.';
+  $('status').textContent = 'This browser cannot read the hardware. Use Chrome or Edge.';
   $('connect').disabled = true;
+  $('connectTimer').disabled = true;
 }
 
 loadSaved();
