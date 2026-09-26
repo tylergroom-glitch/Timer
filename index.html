@@ -87,10 +87,11 @@ a{color:var(--blue)}
   100%{opacity:.4;-webkit-mask-position:0% 0;mask-position:0% 0}}
 
 /* chase: three chevrons in sequence */
-.cue-arrow.style-chase.fire .ch1{animation:flare .7s ease-out 0s}
-.cue-arrow.style-chase.fire .ch2{animation:flare .7s ease-out .1s}
-.cue-arrow.style-chase.fire .ch3{animation:flare .7s ease-out .2s}
-@keyframes flare{0%{opacity:.4}15%{opacity:1}60%{opacity:1}100%{opacity:.4}}
+.cue-arrow.style-chase path{opacity:.45}
+.cue-arrow.style-chase.fire .ch1{animation:flare .8s ease-out 0s}
+.cue-arrow.style-chase.fire .ch2{animation:flare .8s ease-out .12s}
+.cue-arrow.style-chase.fire .ch3{animation:flare .8s ease-out .24s}
+@keyframes flare{0%{opacity:.45}12%{opacity:1}65%{opacity:1}100%{opacity:.45}}
 
 /* star: pops and spins */
 .cue-arrow.style-star .shape{transform-box:fill-box;transform-origin:center}
@@ -100,51 +101,13 @@ a{color:var(--blue)}
   70%{opacity:1;transform:scale(1) rotate(0)}
   100%{opacity:.4;transform:scale(1) rotate(0)}}
 
-/* sparks: triangle throws particles */
-.cue-arrow.style-sparks.fire .shape{animation:flare .75s ease-out}
-.cue-arrow.style-sparks circle{opacity:0}
-.cue-arrow.style-sparks.fire circle{animation:spark .7s ease-out}
-.cue-arrow.style-sparks.fire .s2{animation-delay:.04s}
-.cue-arrow.style-sparks.fire .s3{animation-delay:.08s}
-.cue-arrow.style-sparks.fire .s4{animation-delay:.02s}
-.cue-arrow.style-sparks.fire .s5{animation-delay:.1s}
-.cue-arrow.style-sparks.fire .s6{animation-delay:.06s}
-@keyframes spark{0%{opacity:0;transform:translate(0,0) scale(.4)}
-  20%{opacity:1}
-  100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.1)}}
-.cue-arrow.style-sparks circle{transform-box:fill-box;transform-origin:center}
-
 /* pointer: a finger that jabs */
-.cue-arrow.style-pointer .shape,.cue-arrow.style-rude .shape{transform-box:fill-box;transform-origin:center}
-.cue-arrow.style-pointer.fire .shape,.cue-arrow.style-rude.fire .shape{animation:jab .75s ease-out}
+.cue-arrow.style-pointer .shape{transform-box:fill-box;transform-origin:center}
+.cue-arrow.style-pointer.fire .shape{animation:jab .75s ease-out}
 @keyframes jab{0%{opacity:.45;transform:translateX(-14px) scale(.9)}
   35%{opacity:1;transform:translateX(10px) scale(1.12)}
   65%{opacity:1;transform:translateX(0) scale(1)}
   100%{opacity:.45;transform:translateX(0) scale(1)}}
-/* fun styles */
-.cue-arrow.style-rocket .shape,.cue-arrow.style-snail .shape,
-.cue-arrow.style-runner .shape,.cue-arrow.style-party .shape{transform-box:fill-box;transform-origin:center}
-.cue-arrow.style-rocket.fire .shape{animation:zoom .8s cubic-bezier(.3,0,.2,1)}
-@keyframes zoom{0%{opacity:.4;transform:translateX(-34px) scale(.8)}
-  25%{opacity:1;transform:translateX(-10px) scale(1)}
-  65%{opacity:1;transform:translateX(24px) scale(1.05)}
-  100%{opacity:.4;transform:translateX(0) scale(1)}}
-.cue-arrow.style-snail.fire .shape{animation:creep 1.5s ease-in-out}
-@keyframes creep{0%{opacity:.45;transform:translateX(-14px)}
-  40%{opacity:1;transform:translateX(0)}
-  75%{opacity:1;transform:translateX(9px)}
-  100%{opacity:.45;transform:translateX(0)}}
-.cue-arrow.style-runner.fire .shape{animation:hop .85s ease-out}
-@keyframes hop{0%{opacity:.45;transform:translate(-16px,0)}
-  25%{opacity:1;transform:translate(-4px,-11px)}
-  50%{transform:translate(7px,0)}
-  75%{opacity:1;transform:translate(15px,-7px)}
-  100%{opacity:.45;transform:translate(0,0)}}
-.cue-arrow.style-party.fire .shape{animation:pop .8s cubic-bezier(.2,1.5,.4,1)}
-@keyframes pop{0%{opacity:.4;transform:scale(.45) rotate(-25deg)}
-  40%{opacity:1;transform:scale(1.28) rotate(12deg)}
-  70%{opacity:1;transform:scale(1.02) rotate(0)}
-  100%{opacity:.4;transform:scale(1) rotate(0)}}
 
 .count{font-weight:500;font-variant-numeric:tabular-nums;line-height:1;text-align:center;font-size:min(34cqh,40cqw)}
 .row{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
@@ -189,13 +152,7 @@ body.popout .win header{display:none}
       <option value="classic">Classic</option>
       <option value="chase">Chase</option>
       <option value="star">Stars</option>
-      <option value="sparks">Sparks</option>
       <option value="pointer">Finger</option>
-      <option value="rude">Bird</option>
-      <option value="rocket">Rocket</option>
-      <option value="snail">Snail</option>
-      <option value="runner">Runner</option>
-      <option value="party">Party</option>
     </select>
   </label>
   <button id="resetLayout">Reset layout</button>
@@ -347,23 +304,13 @@ function save() {
 const arrowIdPrefix = 'arrow';
 const ARROW_STYLES = {
   classic: '<polygon class="shape" points="8,10 8,90 94,50"/>',
-  chase: ['<g class="ch1" transform="translate(4,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g>',
-          '<g class="ch2" transform="translate(34,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g>',
-          '<g class="ch3" transform="translate(64,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g>'].join(''),
+  chase: ['<g class="ch1" transform="translate(0,0)"><path d="M0 12 L28 50 L0 88 L20 88 L48 50 L20 12 Z"/></g>',
+          '<g class="ch2" transform="translate(25,0)"><path d="M0 12 L28 50 L0 88 L20 88 L48 50 L20 12 Z"/></g>',
+          '<g class="ch3" transform="translate(50,0)"><path d="M0 12 L28 50 L0 88 L20 88 L48 50 L20 12 Z"/></g>'].join(''),
   star: '<polygon class="shape" points="50,5 61,37 95,37 67,57 78,92 50,71 22,92 33,57 5,37 39,37"/>',
-  sparks: '<polygon class="shape" points="10,16 10,84 82,50"/>' +
-    [[26,-22],[34,-4],[28,16],[18,-30],[36,8],[22,26]].map((d, i) =>
-      `<circle class="s${i+1}" cx="78" cy="50" r="5" style="--dx:${d[0]}px;--dy:${d[1]}px"/>`).join(''),
-  pointer: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F449}</text>',
-  rude: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central" transform="rotate(90 50 52)">\u{1F595}</text>',
-  rocket: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central" transform="rotate(45 50 52)">\u{1F680}</text>',
-  snail: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F40C}</text>',
-  runner: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F3C3}</text>',
-  party: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F389}</text>'
+  pointer: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F449}</text>'
 };
-const ARROW_NAMES = { classic: 'Classic', chase: 'Chase', star: 'Stars', sparks: 'Sparks', pointer: 'Finger',
-  rude: 'Bird', rocket: 'Rocket', snail: 'Snail', runner: 'Runner', party: 'Party' };
-
+const ARROW_NAMES = { classic: 'Classic', chase: 'Chase', star: 'Stars', pointer: 'Finger' };
 function paintArrows(style) {
   const s = ARROW_STYLES[style] ? style : 'classic';
   for (const dir of ['Next', 'Back']) {
