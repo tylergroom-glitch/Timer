@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cue Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#10151C; --panel:#1B222C; --head:#222B37; --line:#2C3542;
+  --text:#DCE2E8; --dim:#8C98A5;
+  --green:#3FB950; --amber:#E3B341; --red:#F85149; --blue:#6CB6FF;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 "IBM Plex Sans",system-ui,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;background:#263040;border:1px solid var(--line);border-radius:6px;padding:7px 13px;cursor:pointer}
+button:hover{background:#2F3B4E}
+button.primary{background:#1F4E8C;border-color:#2B63AD}
+button.primary:hover{background:#2660A8}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+#bar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#bar h1{margin:0;font-size:16px;font-weight:600;margin-right:auto}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--dim);padding:4px 10px;border:1px solid var(--line);border-radius:999px}
+.dot{width:9px;height:9px;border-radius:50%;background:#46505C}
+.dot.on{background:var(--green)}
+.dot.flash{background:#BFF3C8}
+
+#workspace{position:relative;height:calc(100% - 53px);overflow:hidden}
+.win{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;min-width:200px;min-height:140px;box-shadow:0 8px 24px #0005}
+.win header{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--head);border-bottom:1px solid var(--line);border-radius:9px 9px 0 0;cursor:grab;user-select:none;font-size:13px;color:var(--dim)}
+.win header .name{margin-right:auto;font-weight:500;color:var(--text)}
+.win header button{padding:2px 7px;font-size:12px;background:transparent;border-color:transparent;color:var(--dim)}
+.win header button:hover{background:#2F3B4E;color:var(--text)}
+.body{flex:1;overflow:auto;padding:12px 14px}
+.grip{position:absolute;right:2px;bottom:2px;width:16px;height:16px;cursor:nwse-resize;
+  background:linear-gradient(135deg,transparent 50%,var(--line) 50%,var(--line) 60%,transparent 60%,transparent 72%,var(--line) 72%,var(--line) 82%,transparent 82%)}
+
+.arrows{display:flex;align-items:center;justify-content:center;gap:4%;height:100%}
+.arrows svg{height:78%;max-height:100%;width:44%;cursor:pointer}
+.arrow{opacity:.16;transition:opacity .09s ease}
+.arrow.back{fill:var(--red)}
+.arrow.next{fill:var(--green)}
+.arrow.hit{opacity:1}
+.win#win-arrows .body{padding:14px}
+
+.count{font-weight:500;font-variant-numeric:tabular-nums;line-height:1;font-size:clamp(48px,18vh,120px);text-align:center;margin:6px 0 10px}
+.sub{color:var(--dim);font-size:13px;text-align:center}
+.row{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+
+#log{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px}
+#log div{display:grid;grid-template-columns:82px 58px 1fr;gap:8px;padding:3px 0;border-bottom:1px solid #222A35}
+#log .t,#log .gap{color:var(--dim)}
+#log .next{color:var(--green)}
+#log .back{color:var(--amber)}
+.empty{color:var(--dim);font-size:14px}
+
+.stat{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #222A35;font-size:14px}
+.stat span:last-child{font-variant-numeric:tabular-nums}
+#hint{color:var(--dim);font-size:13px;padding:10px 16px}
+
+body.popout #bar,body.popout .grip,body.popout #hint{display:none}
+body.popout #workspace{height:100%}
+body.popout .win{position:static;height:100%;width:100%;border:0;border-radius:0;box-shadow:none}
+body.popout .win header{cursor:default}
+body.popout .win header .pop{display:none}
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <h1>Cue Console</h1>
+  <span class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></span>
+  <button class="primary" id="connect">Connect cue system</button>
+  <button id="wake">Resend wake-up</button>
+  <button id="reset">Reset count</button>
+</div>
+
+<div id="workspace">
+  <section class="win" id="win-arrows" style="left:20px;top:20px;width:540px;height:300px">
+    <header><span class="name">Cue lights</span><button class="pop" title="Open in its own window">Pop out</button></header>
+    <div class="body">
+      <div class="arrows">
+        <svg viewBox="0 0 100 100" role="img" aria-label="Back cue" id="arrowBack"><polygon class="arrow back" points="95,8 95,92 8,50"/></svg>
+        <svg viewBox="0 0 100 100" role="img" aria-label="Next cue" id="arrowNext"><polygon class="arrow next" points="5,8 5,92 92,50"/></svg>
+      </div>
+    </div>
+    <div class="grip"></div>
+  </section>
+
+  <section class="win" id="win-slide" style="left:20px;top:340px;width:260px;height:260px">
+    <header><span class="name">Slide</span><button class="pop" title="Open in its own window">Pop out</button></header>
+    <div class="body">
+      <div class="count" id="slideCount">0</div>
+      <div class="sub" id="slideSub">No cues yet</div>
+      <div class="row">
+        <button id="minus">Back one</button>
+        <button id="plus">Forward one</button>
+      </div>
+    </div>
+    <div class="grip"></div>
+  </section>
+
+  <section class="win" id="win-log" style="left:580px;top:20px;width:380px;height:420px">
+    <header><span class="name">Cue log</span><button class="pop" title="Open in its own window">Pop out</button></header>
+    <div class="body"><div id="log"><div class="empty">Waiting for the first cue.</div></div></div>
+    <div class="grip"></div>
+  </section>
+
+  <section class="win" id="win-stats" style="left:300px;top:340px;width:260px;height:260px">
+    <header><span class="name">Pace</span><button class="pop" title="Open in its own window">Pop out</button></header>
+    <div class="body">
+      <div class="stat"><span>On this slide</span><span id="sHold">—</span></div>
+      <div class="stat"><span>Cues this session</span><span id="sTotal">0</span></div>
+      <div class="stat"><span>Average per slide</span><span id="sAvg">—</span></div>
+      <div class="stat"><span>Longest slide</span><span id="sMax">—</span></div>
+      <div class="stat"><span>Last cue</span><span id="sLast">—</span></div>
+    </div>
+    <div class="grip"></div>
+  </section>
+</div>
+
+<div id="hint">Drag a window by its title bar, resize from the corner, or pop it out onto another screen. Layout and count are remembered on this computer.</div>
+
+<script>
+const VID = 0x0483, PID = 0x101a;
+const DEBOUNCE_MS = 250;
+const CHANNEL = 'tcg-cue-console';
+const params = new URLSearchParams(location.search);
+const popoutPanel = params.get('panel');
+const channel = new BroadcastChannel(CHANNEL);
+
+const state = {
+  slide: 0,
+  connected: false,
+  total: 0,
+  log: [],
+  holds: [],
+  lastCueAt: null
+};
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const clockOf = ms => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+function duration(ms) {
+  if (ms == null) return '—';
+  const s = Math.round(ms / 1000);
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${pad(s % 60)}s`;
+}
+
+/* ---------- Pop-out windows ---------- */
+if (popoutPanel) {
+  document.body.classList.add('popout');
+  document.querySelectorAll('.win').forEach(w => {
+    if (w.id !== 'win-' + popoutPanel) w.remove();
+  });
+  document.title = (document.querySelector('.win .name') || {}).textContent || 'Cue Console';
+  channel.addEventListener('message', e => {
+    if (!e.data) return;
+    if (e.data.type === 'state') {
+      Object.assign(state, e.data.state);
+      render();
+    } else if (e.data.type === 'cue') {
+      pulse(e.data.cue);
+    }
+  });
+  channel.postMessage({ type: 'hello' });
+}
+
+document.querySelectorAll('.pop').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.closest('.win').id.replace('win-', '');
+    window.open(`${location.pathname}?panel=${id}`, `cue-${id}`, 'width=520,height=420');
+  });
+});
+
+function broadcast() {
+  if (popoutPanel) return;
+  channel.postMessage({ type: 'state', state });
+}
+channel.addEventListener('message', e => {
+  if (!popoutPanel && e.data && e.data.type === 'hello') broadcast();
+});
+
+/* ---------- Saved layout and count ---------- */
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem('cue-console');
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (!popoutPanel && saved.layout) {
+      for (const [id, box] of Object.entries(saved.layout)) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        Object.assign(el.style, { left: box.left, top: box.top, width: box.width, height: box.height });
+      }
+    }
+    if (typeof saved.slide === 'number') state.slide = saved.slide;
+  } catch {}
+}
+function save() {
+  if (popoutPanel) return;
+  try {
+    const layout = {};
+    document.querySelectorAll('.win').forEach(w => {
+      layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height };
+    });
+    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide }));
+  } catch {}
+}
+
+/* ---------- Dragging and resizing ---------- */
+let z = 10;
+if (!popoutPanel) {
+  document.querySelectorAll('.win').forEach(win => {
+    const head = win.querySelector('header');
+    head.addEventListener('pointerdown', e => {
+      if (e.target.closest('button')) return;
+      const ws = $('workspace').getBoundingClientRect();
+      const r = win.getBoundingClientRect();
+      const ox = e.clientX - r.left, oy = e.clientY - r.top;
+      head.setPointerCapture(e.pointerId);
+      win.style.zIndex = ++z;
+      head.style.cursor = 'grabbing';
+      const move = ev => {
+        const x = Math.max(0, Math.min(ev.clientX - ws.left - ox, ws.width - r.width));
+        const y = Math.max(0, Math.min(ev.clientY - ws.top - oy, ws.height - r.height));
+        win.style.left = Math.round(x) + 'px';
+        win.style.top = Math.round(y) + 'px';
+      };
+      const up = () => {
+        head.removeEventListener('pointermove', move);
+        head.removeEventListener('pointerup', up);
+        head.style.cursor = 'grab';
+        save();
+      };
+      head.addEventListener('pointermove', move);
+      head.addEventListener('pointerup', up);
+    });
+
+    const grip = win.querySelector('.grip');
+    if (grip) grip.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const r = win.getBoundingClientRect();
+      const sx = e.clientX, sy = e.clientY;
+      grip.setPointerCapture(e.pointerId);
+      win.style.zIndex = ++z;
+      const move = ev => {
+        win.style.width = Math.max(200, r.width + ev.clientX - sx) + 'px';
+        win.style.height = Math.max(140, r.height + ev.clientY - sy) + 'px';
+      };
+      const up = () => {
+        grip.removeEventListener('pointermove', move);
+        grip.removeEventListener('pointerup', up);
+        save();
+      };
+      grip.addEventListener('pointermove', move);
+      grip.addEventListener('pointerup', up);
+    });
+  });
+}
+
+/* ---------- Rendering ---------- */
+function render() {
+  const el = id => $(id);
+  if (el('slideCount')) el('slideCount').textContent = state.slide;
+  if (el('slideSub')) {
+    el('slideSub').textContent = state.lastCueAt
+      ? `Last cue ${clockOf(state.lastCueAt)}`
+      : (state.connected ? 'Waiting for the first cue' : 'Not connected');
+  }
+  if (el('dot')) {
+    el('dot').classList.toggle('on', state.connected);
+    el('status').textContent = state.connected ? 'Cue system connected' : 'Not connected';
+  }
+  if (el('log')) {
+    const box = el('log');
+    if (!state.log.length) {
+      box.innerHTML = '<div class="empty">Waiting for the first cue.</div>';
+    } else {
+      box.innerHTML = state.log.slice(-200).reverse().map(entry =>
+        `<div><span class="t">${clockOf(entry.at)}</span>` +
+        `<span class="${entry.type}">${entry.type === 'next' ? 'Next' : 'Back'}</span>` +
+        `<span class="gap">slide ${entry.slide}${entry.gap != null ? ' · held ' + duration(entry.gap) : ''}</span></div>`
+      ).join('');
+    }
+  }
+  if (el('sTotal')) {
+    el('sTotal').textContent = state.total;
+    el('sHold').textContent = state.lastCueAt ? duration(Date.now() - state.lastCueAt) : '—';
+    const holds = state.holds;
+    el('sAvg').textContent = holds.length ? duration(holds.reduce((a, b) => a + b, 0) / holds.length) : '—';
+    el('sMax').textContent = holds.length ? duration(Math.max(...holds)) : '—';
+    el('sLast').textContent = state.log.length ? (state.log[state.log.length - 1].type === 'next' ? 'Next' : 'Back') : '—';
+  }
+}
+setInterval(() => { if ($('sHold')) render(); }, 1000);
+
+/* ---------- Cue handling ---------- */
+let lastCode = null, lastAt = 0;
+
+function applyCue(type) {
+  const now = Date.now();
+  const gap = state.lastCueAt ? now - state.lastCueAt : null;
+  if (gap != null) state.holds.push(gap);
+  state.slide = Math.max(0, state.slide + (type === 'next' ? 1 : -1));
+  state.total++;
+  state.lastCueAt = now;
+  state.log.push({ at: now, type, slide: state.slide, gap });
+  if (state.log.length > 400) state.log = state.log.slice(-400);
+  flash();
+  pulse(type);
+  if (!popoutPanel) channel.postMessage({ type: 'cue', cue: type });
+  render();
+  save();
+  broadcast();
+}
+
+function pulse(type) {
+  const svg = document.getElementById(type === 'next' ? 'arrowNext' : 'arrowBack');
+  if (!svg) return;
+  const poly = svg.querySelector('.arrow');
+  poly.classList.remove('hit');
+  void poly.offsetWidth;
+  poly.classList.add('hit');
+  clearTimeout(poly._timer);
+  poly._timer = setTimeout(() => poly.classList.remove('hit'), 420);
+}
+
+function flash() {
+  const dot = $('dot');
+  if (!dot) return;
+  dot.classList.add('flash');
+  setTimeout(() => dot.classList.remove('flash'), 120);
+}
+
+function onReport(bytes) {
+  if (bytes.length < 6) return;
+  if (!(bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f && bytes[3] === 0x01 && bytes[5] === 0x83)) return;
+  const code = bytes[4];
+  if (code !== 0x00 && code !== 0x01) return;
+  const now = Date.now();
+  if (code === lastCode && now - lastAt < DEBOUNCE_MS) return;
+  lastCode = code;
+  lastAt = now;
+  applyCue(code === 0x00 ? 'next' : 'back');
+}
+
+/* ---------- Device ---------- */
+let device = null;
+
+async function attach(d) {
+  try {
+    if (!d.opened) await d.open();
+  } catch (e) {
+    state.connected = false;
+    render();
+    return false;
+  }
+  device = d;
+  d.addEventListener('inputreport', e => {
+    onReport(new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength));
+  });
+  await wake();
+  state.connected = true;
+  render();
+  broadcast();
+  return true;
+}
+
+async function wake() {
+  if (!device) return false;
+  const cmd = new Uint8Array(64);
+  cmd[0] = 0x8d;
+  cmd[1] = 0x01;
+  try { await device.sendReport(0, cmd); return true; } catch { return false; }
+}
+
+if (!popoutPanel && 'hid' in navigator) {
+  $('connect').addEventListener('click', async () => {
+    let list = [];
+    try {
+      list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID, productId: PID }] });
+    } catch {}
+    if (list.length) await attach(list[0]);
+  });
+
+  $('wake').addEventListener('click', wake);
+  $('reset').addEventListener('click', () => {
+    state.slide = 0;
+    state.total = 0;
+    state.log = [];
+    state.holds = [];
+    state.lastCueAt = null;
+    render();
+    save();
+    broadcast();
+  });
+  $('plus').addEventListener('click', () => applyCue('next'));
+  $('minus').addEventListener('click', () => applyCue('back'));
+  $('arrowNext').addEventListener('click', () => applyCue('next'));
+  $('arrowBack').addEventListener('click', () => applyCue('back'));
+
+  navigator.hid.getDevices().then(async devices => {
+    const known = devices.find(d => d.vendorId === VID && d.productId === PID);
+    if (known) await attach(known);
+  }).catch(() => {});
+
+  navigator.hid.addEventListener('disconnect', e => {
+    if (device && e.device === device) {
+      state.connected = false;
+      device = null;
+      render();
+      broadcast();
+    }
+  });
+  navigator.hid.addEventListener('connect', async e => {
+    if (!device && e.device.vendorId === VID && e.device.productId === PID) await attach(e.device);
+  });
+} else if (!popoutPanel) {
+  $('status').textContent = 'This browser cannot read the cue system. Use Chrome or Edge.';
+  $('connect').disabled = true;
+}
+
+loadSaved();
+render();
+</script>
+</body>
+</html>
