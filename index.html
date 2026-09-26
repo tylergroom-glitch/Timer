@@ -38,6 +38,9 @@ a{color:var(--blue)}
 .win header{display:flex;align-items:center;gap:6px;padding:6px 8px 6px 11px;background:var(--head);border-bottom:1px solid var(--line);
   border-radius:9px 9px 0 0;cursor:grab;user-select:none;font-size:13px;color:var(--dim)}
 .win header .name{margin-right:auto;font-weight:500;color:var(--text)}
+.win.clear{background:transparent;border-color:transparent;box-shadow:none}
+.win.clear header{background:rgba(34,43,55,.55)}
+.win.clear:hover header{background:var(--head)}
 .win header button{padding:1px 8px;font-size:13px;background:transparent;border-color:transparent;color:var(--dim);line-height:1.3}
 .win header button:hover{background:#2F3B4E;color:var(--text)}
 .body{flex:1;overflow:auto;padding:12px 14px;container-type:size}
@@ -58,14 +61,19 @@ a{color:var(--blue)}
 
 .arrows{display:flex;align-items:center;justify-content:center;gap:5%;height:100%}
 .arrows svg{height:86%;width:45%;cursor:pointer}
-.chase-svg g path{transition:none}
-.chase-svg.back path{fill:var(--red)}
-.chase-svg.next path{fill:var(--green)}
-.chase-svg .ch1,.chase-svg .ch2,.chase-svg .ch3{opacity:.13}
-.chase-svg.fire .ch1{animation:flare .55s ease-out 0s}
-.chase-svg.fire .ch2{animation:flare .55s ease-out .09s}
-.chase-svg.fire .ch3{animation:flare .55s ease-out .18s}
-@keyframes flare{0%{opacity:.13}18%{opacity:1}55%{opacity:.9}100%{opacity:.13}}
+.cue-arrow polygon{opacity:.15}
+.cue-arrow.next polygon{fill:var(--green)}
+.cue-arrow.back polygon{fill:var(--red)}
+.cue-arrow.fire polygon{
+  -webkit-mask-image:linear-gradient(90deg,#000 0 48%,transparent 78%);
+  mask-image:linear-gradient(90deg,#000 0 48%,transparent 78%);
+  -webkit-mask-size:230% 100%;mask-size:230% 100%;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  animation:lightUp .75s ease-out}
+@keyframes lightUp{
+  0%{opacity:1;-webkit-mask-position:100% 0;mask-position:100% 0}
+  55%{opacity:1;-webkit-mask-position:0% 0;mask-position:0% 0}
+  100%{opacity:.15;-webkit-mask-position:0% 0;mask-position:0% 0}}
 
 .count{font-weight:500;font-variant-numeric:tabular-nums;line-height:1;text-align:center;font-size:min(34cqh,40cqw)}
 .row{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
@@ -104,7 +112,7 @@ body.popout .win header{display:none}
 
 <div id="workspace">
   <section class="win" id="win-timer" style="left:20px;top:20px;width:560px;height:320px">
-    <header><span class="name">Speaker timer</span><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <header><span class="name">Speaker timer</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
     <div class="body">
       <div class="timer">
         <div class="time" id="time">--:--</div>
@@ -115,18 +123,18 @@ body.popout .win header{display:none}
   </section>
 
   <section class="win" id="win-arrows" style="left:600px;top:20px;width:420px;height:250px">
-    <header><span class="name">Cue lights</span><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <header><span class="name">Cue lights</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
     <div class="body">
       <div class="arrows">
-        <svg viewBox="0 0 100 100" role="img" aria-label="back cue" id="arrowBack" class="chase-svg back"><g transform="scale(-1,1) translate(-100,0)"><g class="ch1" transform="translate(4,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch2" transform="translate(34,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch3" transform="translate(64,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g></g></svg>
-        <svg viewBox="0 0 100 100" role="img" aria-label="next cue" id="arrowNext" class="chase-svg next"><g class="ch1" transform="translate(4,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch2" transform="translate(34,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch3" transform="translate(64,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g></svg>
+        <svg viewBox="0 0 100 100" role="img" aria-label="Back cue" id="arrowBack" class="cue-arrow back"><polygon points="95,8 95,92 8,50"/></svg>
+        <svg viewBox="0 0 100 100" role="img" aria-label="Next cue" id="arrowNext" class="cue-arrow next"><polygon points="5,8 5,92 92,50"/></svg>
       </div>
     </div>
     <div class="grip"></div>
   </section>
 
   <section class="win" id="win-slide" style="left:20px;top:360px;width:270px;height:230px">
-    <header><span class="name">Slide</span><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <header><span class="name">Slide</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
     <div class="body">
       <div class="count" id="slideCount">0</div>
       <div class="row"><button id="minus">Back</button><button id="plus">Forward</button></div>
@@ -154,11 +162,11 @@ body.popout .win header{display:none}
   <section class="win" id="win-remote" style="left:1040px;top:20px;width:340px;height:300px">
     <header><span class="name">Remote link</span><button class="mini" title="Minimize">&minus;</button></header>
     <div class="body" id="remote">
-      <p>Paste your Firebase Realtime Database URL, then start sharing.</p>
+      <p>Firebase Realtime Database URL. Sharing runs automatically whenever this is set.</p>
       <input id="dbUrl" type="url" placeholder="https://your-project-default-rtdb.firebaseio.com" spellcheck="false">
       <div class="row" style="justify-content:flex-start">
-        <button class="primary" id="share">Start sharing</button>
-        <button id="copyLink" disabled>Copy link</button>
+        <button id="copyLink">Copy link</button>
+        <button id="newLink">New link</button>
       </div>
       <p id="shareState">Not sharing.</p>
       <div id="link"></div>
@@ -220,6 +228,7 @@ function loadSaved() {
         if (box.top) el.style.top = box.top;
         if (box.width) el.style.width = box.width;
         if (box.height) el.style.height = box.height;
+        if (box.clear) el.classList.add('clear');
         if (box.min) minimize(el, true);
       }
     }
@@ -235,7 +244,8 @@ function save() {
   try {
     const layout = {};
     document.querySelectorAll('.win').forEach(w => {
-      layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height, min: w.dataset.min === '1' };
+      layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height,
+                       min: w.dataset.min === '1', clear: w.classList.contains('clear') };
     });
     localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey }));
   } catch {}
@@ -349,7 +359,7 @@ function pulse(type) {
   void svg.offsetWidth;
   svg.classList.add('fire');
   clearTimeout(svg._t);
-  svg._t = setTimeout(() => svg.classList.remove('fire'), 800);
+  svg._t = setTimeout(() => svg.classList.remove('fire'), 780);
 }
 
 /* ---------- Cues ---------- */
@@ -455,14 +465,25 @@ async function sendMode(d, mode) {
 function dbBase() {
   const el = $('dbUrl');
   const raw = el ? (el.value || '').trim().replace(/\/+$/, '') : '';
-  return raw || null;
+  return /^https?:\/\//.test(raw) ? raw : null;
 }
 function viewerLink() {
   const base = location.origin + location.pathname.replace(/index\.html$/, '');
-  return `${base}view.html?db=${encodeURIComponent(dbBase())}&k=${showKey}`;
+  return `${base}view.html?db=${encodeURIComponent(dbBase() || '')}&k=${showKey}`;
+}
+function refreshLink() {
+  if (!dbBase()) {
+    $('link').textContent = '';
+    $('shareState').textContent = 'Enter the database URL to start sharing.';
+    return;
+  }
+  if (!showKey) showKey = Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
+  sharing = true;
+  $('link').innerHTML = `<a href="${viewerLink()}" target="_blank" rel="noopener">${viewerLink()}</a>`;
+  save();
 }
 function publish(force) {
-  if (!sharing || !showKey || popoutPanel) return;
+  if (!sharing || !showKey || popoutPanel || !dbBase()) return;
   const now = Date.now();
   if (!force && now - lastPublish < 700) {
     clearTimeout(publishTimer);
@@ -477,33 +498,41 @@ function publish(force) {
     connected: state.connected,
     at: now
   };
-  fetch(`${dbBase()}/shows/${showKey}.json`, { method: 'PUT', body: JSON.stringify(payload) })
+  fetch(`${dbBase()}/shows/${showKey}/state.json`, { method: 'PUT', body: JSON.stringify(payload) })
     .then(r => { $('shareState').textContent = r.ok ? `Sharing · updated ${clockOf(Date.now())}` : `Share error ${r.status}`; })
     .catch(() => { $('shareState').textContent = 'Share failed — check the database URL and rules.'; });
+}
+function publishBackground(dataUrl) {
+  if (!dbBase()) return;
+  if (!showKey) refreshLink();
+  fetch(`${dbBase()}/shows/${showKey}/bg.json`, { method: 'PUT', body: JSON.stringify(dataUrl || null) })
+    .catch(() => {});
 }
 
 /* ---------- Wiring ---------- */
 if (!popoutPanel) {
-  $('share').addEventListener('click', () => {
-    if (!dbBase()) { $('shareState').textContent = 'Enter the database URL first.'; return; }
-    if (sharing) {
-      sharing = false;
-      $('share').textContent = 'Start sharing';
-      $('shareState').textContent = 'Not sharing.';
-      return;
-    }
-    if (!showKey) showKey = Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
-    sharing = true;
-    $('share').textContent = 'Stop sharing';
-    $('copyLink').disabled = false;
-    $('link').innerHTML = `<a href="${viewerLink()}" target="_blank" rel="noopener">${viewerLink()}</a>`;
-    save();
+  $('dbUrl').addEventListener('change', () => {
+    refreshLink();
     publish(true);
+    const bg = localStorage.getItem('cue-console-bg');
+    if (bg) publishBackground(bg);
   });
   $('copyLink').addEventListener('click', () => {
     navigator.clipboard.writeText(viewerLink()).then(() => { $('shareState').textContent = 'Link copied.'; });
   });
+  $('newLink').addEventListener('click', () => {
+    showKey = Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
+    refreshLink();
+    publish(true);
+    const bg = localStorage.getItem('cue-console-bg');
+    if (bg) publishBackground(bg);
+  });
   setInterval(() => publish(), 2000);
+
+  document.querySelectorAll('.clearbg').forEach(btn => btn.addEventListener('click', () => {
+    btn.closest('.win').classList.toggle('clear');
+    save();
+  }));
 
   $('bgFile').addEventListener('change', e => {
     const file = e.target.files[0];
@@ -520,6 +549,12 @@ if (!popoutPanel) {
         const data = c.toDataURL('image/jpeg', 0.82);
         $('bgLayer').style.backgroundImage = `url(${data})`;
         try { localStorage.setItem('cue-console-bg', data); } catch {}
+        const small = document.createElement('canvas');
+        const s2 = Math.min(1, 1400 / c.width);
+        small.width = Math.round(c.width * s2);
+        small.height = Math.round(c.height * s2);
+        small.getContext('2d').drawImage(c, 0, 0, small.width, small.height);
+        publishBackground(small.toDataURL('image/jpeg', 0.7));
       };
       img.src = reader.result;
     };
@@ -528,6 +563,7 @@ if (!popoutPanel) {
   $('bgClear').addEventListener('click', () => {
     $('bgLayer').style.backgroundImage = '';
     try { localStorage.removeItem('cue-console-bg'); } catch {}
+    publishBackground(null);
   });
   $('resetLayout').addEventListener('click', () => {
     try {
@@ -574,6 +610,7 @@ if (!popoutPanel && 'hid' in navigator) {
 
 loadSaved();
 render();
+if (!popoutPanel) { refreshLink(); publish(true); }
 </script>
 </body>
 </html>

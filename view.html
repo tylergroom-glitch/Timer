@@ -9,6 +9,7 @@
 <style>
 :root{--bg:#10151C;--text:#DCE2E8;--dim:#8C98A5;--green:#3FB950;--amber:#E3B341;--red:#F85149;--line:#2C3542}
 *{box-sizing:border-box}
+#bgLayer{position:fixed;inset:0;background-size:cover;background-position:center;z-index:-1}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;padding:4vmin;text-align:center}
@@ -21,25 +22,32 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex San
 #sub{color:var(--dim);font-size:clamp(13px,2.2vh,17px)}
 .arrows{display:flex;gap:6vw;align-items:center;justify-content:center;width:min(76vw,620px)}
 .arrows svg{width:44%}
-.chase-svg.back path{fill:var(--red)}
-.chase-svg.next path{fill:var(--green)}
-.chase-svg .ch1,.chase-svg .ch2,.chase-svg .ch3{opacity:.13}
-.chase-svg.fire .ch1{animation:flare .55s ease-out 0s}
-.chase-svg.fire .ch2{animation:flare .55s ease-out .09s}
-.chase-svg.fire .ch3{animation:flare .55s ease-out .18s}
-@keyframes flare{0%{opacity:.13}18%{opacity:1}55%{opacity:.9}100%{opacity:.13}}
+.cue-arrow polygon{opacity:.15}
+.cue-arrow.next polygon{fill:var(--green)}
+.cue-arrow.back polygon{fill:var(--red)}
+.cue-arrow.fire polygon{
+  -webkit-mask-image:linear-gradient(90deg,#000 0 48%,transparent 78%);
+  mask-image:linear-gradient(90deg,#000 0 48%,transparent 78%);
+  -webkit-mask-size:230% 100%;mask-size:230% 100%;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  animation:lightUp .75s ease-out}
+@keyframes lightUp{
+  0%{opacity:1;-webkit-mask-position:100% 0;mask-position:100% 0}
+  55%{opacity:1;-webkit-mask-position:0% 0;mask-position:0% 0}
+  100%{opacity:.15;-webkit-mask-position:0% 0;mask-position:0% 0}}
 #slide{font-size:clamp(14px,2.4vh,19px);color:var(--dim)}
 #slide b{color:var(--text);font-weight:500}
 #state{position:fixed;top:10px;right:14px;font-size:13px;color:var(--dim)}
 </style>
 </head>
 <body>
+<div id="bgLayer"></div>
 <div id="state">connecting…</div>
 <div id="time">--:--</div>
 <div id="sub">Waiting for the show</div>
 <div class="arrows">
-  <svg viewBox="0 0 100 100" role="img" aria-label="back cue" id="aBack" class="chase-svg back"><g transform="scale(-1,1) translate(-100,0)"><g class="ch1" transform="translate(4,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch2" transform="translate(34,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch3" transform="translate(64,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g></g></svg>
-        <svg viewBox="0 0 100 100" role="img" aria-label="next cue" id="aNext" class="chase-svg next"><g class="ch1" transform="translate(4,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch2" transform="translate(34,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g><g class="ch3" transform="translate(64,0)"><path d="M0 14 L24 50 L0 86 L14 86 L38 50 L14 14 Z"/></g></svg>
+  <svg viewBox="0 0 100 100" role="img" aria-label="Back cue" id="aBack" class="cue-arrow back"><polygon points="95,8 95,92 8,50"/></svg>
+  <svg viewBox="0 0 100 100" role="img" aria-label="Next cue" id="aNext" class="cue-arrow next"><polygon points="5,8 5,92 92,50"/></svg>
 </div>
 <div id="slide">Slide <b id="slideNum">0</b></div>
 
@@ -87,11 +95,20 @@ function flash(type) {
   void el.offsetWidth;
   el.classList.add('fire');
   clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('fire'), 800);
+  el._t = setTimeout(() => el.classList.remove('fire'), 780);
+}
+
+function loadBackground() {
+  fetch(`${db}/shows/${key}/bg.json`, { cache: 'no-store' })
+    .then(r => r.json())
+    .then(d => { document.getElementById('bgLayer').style.backgroundImage = d ? `url(${d})` : ''; })
+    .catch(() => {});
 }
 
 function start() {
-  const url = `${db}/shows/${key}.json`;
+  loadBackground();
+  setInterval(loadBackground, 30000);
+  const url = `${db}/shows/${key}/state.json`;
   let es;
   try {
     es = new EventSource(url);
@@ -113,7 +130,7 @@ function start() {
 }
 
 function poll() {
-  fetch(`${db}/shows/${key}.json`, { cache: 'no-store' })
+  fetch(`${db}/shows/${key}/state.json`, { cache: 'no-store' })
     .then(r => r.json())
     .then(d => { $('state').textContent = 'live'; paint(d); })
     .catch(() => { $('state').textContent = 'offline'; });
