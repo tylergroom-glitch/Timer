@@ -58,8 +58,8 @@ a{color:var(--blue)}
 #dock button{pointer-events:auto;background:var(--head)}
 
 .timer{display:flex;flex-direction:column;height:100%;justify-content:center;border-radius:8px}
-.timer.flashing{animation:zeroFlash 1s steps(1,end) infinite}
-@keyframes zeroFlash{0%,49%{background:transparent}50%,100%{background:rgba(248,81,73,.3)}}
+.timer.flashing .time{animation:zeroFlash 1s steps(1,end) infinite}
+@keyframes zeroFlash{0%,49%{opacity:1}50%,100%{opacity:.12}}
 .time{font-weight:500;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em;text-align:center;font-size:min(38cqh,26cqw)}
 .time.green{color:var(--green)}
 .time.amber{color:var(--amber)}
