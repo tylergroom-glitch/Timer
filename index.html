@@ -57,7 +57,9 @@ a{color:var(--blue)}
 #dock{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;padding:8px 12px;flex-wrap:wrap;pointer-events:none}
 #dock button{pointer-events:auto;background:var(--head)}
 
-.timer{display:flex;flex-direction:column;height:100%;justify-content:center}
+.timer{display:flex;flex-direction:column;height:100%;justify-content:center;border-radius:8px}
+.timer.flashing{animation:zeroFlash 1s steps(1,end) infinite}
+@keyframes zeroFlash{0%,49%{background:transparent}50%,100%{background:rgba(248,81,73,.3)}}
 .time{font-weight:500;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em;text-align:center;font-size:min(38cqh,26cqw)}
 .time.green{color:var(--green)}
 .time.amber{color:var(--amber)}
@@ -65,9 +67,29 @@ a{color:var(--blue)}
 .time.over{animation:blink 1s steps(2,end) infinite}
 @keyframes blink{50%{opacity:.35}}
 .sub{color:var(--dim);text-align:center;margin-top:8px;font-size:clamp(11px,6cqh,15px)}
+.prog{padding:3px 9px;font-size:12px;opacity:.75}
+.prog.on{background:#1F4E8C;border-color:#2B63AD;opacity:1}
+.prog.live{outline:1px solid var(--green)}
+.win.clear #progRow{opacity:0;transition:opacity .12s ease}
+.win.clear:hover #progRow{opacity:1}
 
+.solo{display:flex;align-items:center;justify-content:center;height:100%}
+.solo svg{height:94%;width:100%;cursor:pointer}
 .arrows{display:flex;align-items:center;justify-content:center;gap:5%;height:100%}
 .arrows svg{height:86%;width:45%;cursor:pointer}
+.arrows.stacked{flex-direction:column;gap:0;justify-content:center;align-items:center}
+.arrows.stacked svg{height:52%;width:auto;max-width:100%}
+.arrows.stacked .style-bulbs{height:58%}
+.arrows.stacked .style-bulbs.back{margin-top:-14%}
+.arrows.stacked .style-classic{height:58%}
+.arrows.stacked .style-classic.back{margin-top:-28%}
+.arrows.stacked .style-chase{height:46%}
+.arrows.stacked .style-chase.back{margin-top:-14%}
+.arrows.stacked .style-star,.arrows.stacked .style-pointer{height:46%}
+.arrows.stacked .style-star.back,.arrows.stacked .style-pointer.back{margin-top:-4%}
+.arrows.stacked .cue-arrow.next{transform:translate(3%,-6%)}
+.arrows.stacked .cue-arrow.back{transform:translate(5%,0)}
+
 .cue-arrow polygon,.cue-arrow path,.cue-arrow circle{opacity:.4}
 .cue-arrow.next polygon,.cue-arrow.next path,.cue-arrow.next circle{fill:var(--green)}
 .cue-arrow.back polygon,.cue-arrow.back path,.cue-arrow.back circle{fill:var(--red)}
@@ -92,6 +114,20 @@ a{color:var(--blue)}
 .cue-arrow.style-chase.fire .ch2{animation:flare .8s ease-out .12s}
 .cue-arrow.style-chase.fire .ch3{animation:flare .8s ease-out .24s}
 @keyframes flare{0%{opacity:.45}12%{opacity:1}65%{opacity:1}100%{opacity:.45}}
+
+/* bulbs: lamp array that lights column by column */
+.cue-arrow.style-bulbs circle{opacity:.3}
+.cue-arrow.style-bulbs .gloss{fill:#fff !important;opacity:.13}
+.cue-arrow.style-bulbs.fire .gloss{animation:gloss .85s ease-out}
+@keyframes gloss{0%{opacity:.13}10%{opacity:.5}65%{opacity:.45}100%{opacity:.13}}
+.cue-arrow.style-bulbs.fire .b1 circle{animation:lamp .9s ease-out 0.000s}
+.cue-arrow.style-bulbs.fire .b2 circle{animation:lamp .9s ease-out 0.055s}
+.cue-arrow.style-bulbs.fire .b3 circle{animation:lamp .9s ease-out 0.110s}
+.cue-arrow.style-bulbs.fire .b4 circle{animation:lamp .9s ease-out 0.165s}
+.cue-arrow.style-bulbs.fire .b5 circle{animation:lamp .9s ease-out 0.220s}
+.cue-arrow.style-bulbs.fire .b6 circle{animation:lamp .9s ease-out 0.275s}
+.cue-arrow.style-bulbs.fire .b7 circle{animation:lamp .9s ease-out 0.330s}
+@keyframes lamp{0%{opacity:.3}10%{opacity:1}65%{opacity:1}100%{opacity:.3}}
 
 /* star: pops and spins */
 .cue-arrow.style-star .shape{transform-box:fill-box;transform-origin:center}
@@ -159,8 +195,13 @@ body.popout .win header{display:none}
       <option value="chase">Chase</option>
       <option value="star">Stars</option>
       <option value="pointer">Finger</option>
+      <option value="bulbs">Bulbs</option>
     </select>
   </label>
+  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="stacked"> Stacked</label>
+  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="sound"> Sound</label>
+  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="stopZero"> Stop at 0:00</label>
+  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="flashZero"> Flash at 0:00</label>
   <button id="resetLayout">Reset layout</button>
 </div>
 
@@ -171,6 +212,13 @@ body.popout .win header{display:none}
       <div class="timer">
         <div class="time" id="time">--:--</div>
         <div class="sub" id="tSource">Waiting for the speaker timer</div>
+        <div class="row" id="progRow" style="margin-top:6px">
+          <button class="prog on" data-prog="auto">Auto</button>
+          <button class="prog" data-prog="0">P1</button>
+          <button class="prog" data-prog="1">P2</button>
+          <button class="prog" data-prog="2">P3</button>
+          <button class="prog" data-prog="3">P4</button>
+        </div>
       </div>
     </div>
     <div class="grip"></div>
@@ -250,6 +298,29 @@ body.popout .win header{display:none}
     <div class="grip"></div>
   </section>
 
+  <section class="win" id="win-clock" style="left:700px;top:620px;width:340px;height:200px">
+    <header><span class="name">Time of day</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <div class="body">
+      <div class="timer">
+        <div class="time green" id="tod">--:--</div>
+        <div class="sub"><button id="todFormat" style="padding:3px 9px;font-size:12px">24 hour</button> <button id="todSeconds" style="padding:3px 9px;font-size:12px">Show seconds</button></div>
+      </div>
+    </div>
+    <div class="grip"></div>
+  </section>
+
+  <section class="win" id="win-next" style="left:20px;top:620px;width:320px;height:200px">
+    <header><span class="name">Next arrow</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <div class="body"><div class="solo"><svg viewBox="0 0 100 100" role="img" aria-label="Next cue" class="cue-arrow next style-classic"></svg></div></div>
+    <div class="grip"></div>
+  </section>
+
+  <section class="win" id="win-back" style="left:360px;top:620px;width:320px;height:200px">
+    <header><span class="name">Back arrow</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <div class="body"><div class="solo"><svg viewBox="0 0 100 100" role="img" aria-label="Back cue" class="cue-arrow back style-classic"></svg></div></div>
+    <div class="grip"></div>
+  </section>
+
   <div id="dock"></div>
 </div>
 
@@ -311,6 +382,13 @@ function loadSaved() {
     if (typeof saved.slide === 'number') state.slide = saved.slide;
     if (saved.dbUrl && $('dbUrl')) $('dbUrl').value = saved.dbUrl;
     if (saved.arrowStyle) arrowStyle = saved.arrowStyle;
+    if (typeof saved.arrowStacked === 'boolean') arrowStacked = saved.arrowStacked;
+    if (typeof saved.soundOn === 'boolean') soundOn = saved.soundOn;
+    if (typeof saved.stopAtZero === 'boolean') stopAtZero = saved.stopAtZero;
+    if (saved.selectedProgram !== undefined) selectedProgram = saved.selectedProgram;
+    if (typeof saved.flashAtZero === 'boolean') flashAtZero = saved.flashAtZero;
+    if (typeof saved.clock24 === 'boolean') clock24 = saved.clock24;
+    if (typeof saved.clockSeconds === 'boolean') clockSeconds = saved.clockSeconds;
     if (saved.camUrl && $('camUrl')) $('camUrl').value = saved.camUrl;
     if (saved.camMode && $('camMode')) $('camMode').value = saved.camMode;
     if (saved.showKey) showKey = saved.showKey;
@@ -326,7 +404,7 @@ function save() {
       layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height,
                        min: w.dataset.min === '1', clear: w.classList.contains('clear') };
     });
-    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle,
+    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, clock24, clockSeconds, selectedProgram,
       camUrl: $('camUrl') ? $('camUrl').value.trim() : '', camMode: $('camMode') ? $('camMode').value : 'snapshot',
       dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey }));
   } catch {}
@@ -340,22 +418,35 @@ const ARROW_STYLES = {
           '<g class="ch2" transform="translate(25,0)"><path d="M0 12 L28 50 L0 88 L20 88 L48 50 L20 12 Z"/></g>',
           '<g class="ch3" transform="translate(50,0)"><path d="M0 12 L28 50 L0 88 L20 88 L48 50 L20 12 Z"/></g>'].join(''),
   star: '<polygon class="shape" points="50,5 61,37 95,37 67,57 78,92 50,71 22,92 33,57 5,37 39,37"/>',
-  pointer: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F449}</text>'
+  pointer: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F449}</text>',
+  bulbs: '<g class="b1"><circle cx="8" cy="9.2" r="6.4"/><circle class="gloss" cx="6.2" cy="7.2" r="2.1"/><circle cx="8" cy="22.8" r="6.4"/><circle class="gloss" cx="6.2" cy="20.8" r="2.1"/><circle cx="8" cy="36.4" r="6.4"/><circle class="gloss" cx="6.2" cy="34.4" r="2.1"/><circle cx="8" cy="50.0" r="6.4"/><circle class="gloss" cx="6.2" cy="48.0" r="2.1"/><circle cx="8" cy="63.6" r="6.4"/><circle class="gloss" cx="6.2" cy="61.6" r="2.1"/><circle cx="8" cy="77.2" r="6.4"/><circle class="gloss" cx="6.2" cy="75.2" r="2.1"/><circle cx="8" cy="90.8" r="6.4"/><circle class="gloss" cx="6.2" cy="88.8" r="2.1"/></g><g class="b2"><circle cx="22" cy="16.0" r="6.4"/><circle class="gloss" cx="20.2" cy="14.0" r="2.1"/><circle cx="22" cy="29.6" r="6.4"/><circle class="gloss" cx="20.2" cy="27.6" r="2.1"/><circle cx="22" cy="43.2" r="6.4"/><circle class="gloss" cx="20.2" cy="41.2" r="2.1"/><circle cx="22" cy="56.8" r="6.4"/><circle class="gloss" cx="20.2" cy="54.8" r="2.1"/><circle cx="22" cy="70.4" r="6.4"/><circle class="gloss" cx="20.2" cy="68.4" r="2.1"/><circle cx="22" cy="84.0" r="6.4"/><circle class="gloss" cx="20.2" cy="82.0" r="2.1"/></g><g class="b3"><circle cx="36" cy="22.8" r="6.4"/><circle class="gloss" cx="34.2" cy="20.8" r="2.1"/><circle cx="36" cy="36.4" r="6.4"/><circle class="gloss" cx="34.2" cy="34.4" r="2.1"/><circle cx="36" cy="50.0" r="6.4"/><circle class="gloss" cx="34.2" cy="48.0" r="2.1"/><circle cx="36" cy="63.6" r="6.4"/><circle class="gloss" cx="34.2" cy="61.6" r="2.1"/><circle cx="36" cy="77.2" r="6.4"/><circle class="gloss" cx="34.2" cy="75.2" r="2.1"/></g><g class="b4"><circle cx="50" cy="29.6" r="6.4"/><circle class="gloss" cx="48.2" cy="27.6" r="2.1"/><circle cx="50" cy="43.2" r="6.4"/><circle class="gloss" cx="48.2" cy="41.2" r="2.1"/><circle cx="50" cy="56.8" r="6.4"/><circle class="gloss" cx="48.2" cy="54.8" r="2.1"/><circle cx="50" cy="70.4" r="6.4"/><circle class="gloss" cx="48.2" cy="68.4" r="2.1"/></g><g class="b5"><circle cx="64" cy="36.4" r="6.4"/><circle class="gloss" cx="62.2" cy="34.4" r="2.1"/><circle cx="64" cy="50.0" r="6.4"/><circle class="gloss" cx="62.2" cy="48.0" r="2.1"/><circle cx="64" cy="63.6" r="6.4"/><circle class="gloss" cx="62.2" cy="61.6" r="2.1"/></g><g class="b6"><circle cx="78" cy="43.2" r="6.4"/><circle class="gloss" cx="76.2" cy="41.2" r="2.1"/><circle cx="78" cy="56.8" r="6.4"/><circle class="gloss" cx="76.2" cy="54.8" r="2.1"/></g><g class="b7"><circle cx="92" cy="50.0" r="6.4"/><circle class="gloss" cx="90.2" cy="48.0" r="2.1"/></g>'
 };
-const ARROW_NAMES = { classic: 'Classic', chase: 'Chase', star: 'Stars', pointer: 'Finger' };
+const ARROW_NAMES = { classic: 'Classic', chase: 'Chase', star: 'Stars', pointer: 'Finger', bulbs: 'Bulbs' };
+function applyLayout(on) {
+  document.querySelectorAll('.arrows').forEach(row => {
+    row.classList.toggle('stacked', !!on);
+    const next = row.querySelector('.cue-arrow.next');
+    const back = row.querySelector('.cue-arrow.back');
+    if (!next || !back) return;
+    if (on) row.prepend(next); else row.prepend(back);
+  });
+}
+
 function paintArrows(style) {
   const s = ARROW_STYLES[style] ? style : 'classic';
-  for (const dir of ['Next', 'Back']) {
-    const svg = document.getElementById(arrowIdPrefix + dir);
-    if (!svg) continue;
+  document.querySelectorAll('.cue-arrow').forEach(svg => {
+    const dir = svg.classList.contains('back') ? 'back' : 'next';
     const inner = ARROW_STYLES[s];
-    svg.innerHTML = dir === 'Back'
+    svg.innerHTML = dir === 'back'
       ? `<g transform="scale(-1,1) translate(-100,0)">${inner}</g>`
       : inner;
-    svg.setAttribute('class', `cue-arrow ${dir.toLowerCase()} style-${s}`);
-  }
+    svg.setAttribute('class', `cue-arrow ${dir} style-${s}`);
+  });
 }
 let arrowStyle = 'classic';
+let arrowStacked = false;
+let stopAtZero = false;
+let flashAtZero = false;
 
 /* ---------- Background ---------- */
 function readBg() {
@@ -456,13 +547,25 @@ function renderTimer() {
   if (!live) {
     el.textContent = '--:--';
     el.className = 'time';
+    document.querySelectorAll('#win-timer .timer').forEach(t => t.classList.remove('flashing'));
     if (src) src.textContent = state.timerConnected ? 'Connected, waiting for data' : 'Waiting for the speaker timer';
     return;
   }
-  const left = live.total - live.elapsed;
+  let left = live.total - live.elapsed;
+  const over = left < 0;
+  if (stopAtZero && over) left = 0;
   el.textContent = fmtTime(left);
-  el.className = 'time ' + (left <= 0 ? 'red over' : left <= live.yellow ? 'amber' : 'green');
-  if (src) src.textContent = `Set ${fmtTime(live.total)} · yellow at ${fmtTime(live.yellow)} · ${live.running ? 'running' : 'stopped'}`;
+  el.className = 'time ' + (left <= 0 ? (over && !stopAtZero ? 'red over' : 'red') : left <= live.yellow ? 'amber' : 'green');
+  document.querySelectorAll('#win-timer .timer').forEach(t => t.classList.toggle('flashing', flashAtZero && left <= 0));
+  if (src) src.textContent = `Program ${live.program} · set ${fmtTime(live.total)} · yellow at ${fmtTime(live.yellow)} · ${live.running ? 'running' : 'stopped'}`;
+  document.querySelectorAll('.prog').forEach(btn => {
+    btn.classList.toggle('on', btn.dataset.prog === String(selectedProgram));
+    btn.classList.toggle('live', btn.dataset.prog === String(autoProgram));
+    if (state.programs && btn.dataset.prog !== 'auto') {
+      const p = state.programs[Number(btn.dataset.prog)];
+      if (p) btn.title = `Set ${fmtTime(p.total)}, yellow at ${fmtTime(p.yellow)}`;
+    }
+  });
 }
 
 function render() {
@@ -492,13 +595,13 @@ function render() {
 setInterval(() => { if ($('sHold')) render(); }, 1000);
 
 function pulse(type) {
-  const svg = $(type === 'next' ? 'arrowNext' : 'arrowBack');
-  if (!svg) return;
-  svg.classList.remove('fire');
-  void svg.offsetWidth;
-  svg.classList.add('fire');
-  clearTimeout(svg._t);
-  svg._t = setTimeout(() => svg.classList.remove('fire'), 1600);
+  document.querySelectorAll('.cue-arrow.' + type).forEach(svg => {
+    svg.classList.remove('fire');
+    void svg.offsetWidth;
+    svg.classList.add('fire');
+    clearTimeout(svg._t);
+    svg._t = setTimeout(() => svg.classList.remove('fire'), 1600);
+  });
 }
 
 /* ---------- Cues ---------- */
@@ -513,6 +616,7 @@ function applyCue(type) {
   state.log.push({ at: now, type, slide: state.slide, gap });
   if (state.log.length > 400) state.log = state.log.slice(-400);
   pulse(type);
+  playClick();
   if ($('dot')) { $('dot').classList.add('flash'); setTimeout(() => $('dot').classList.remove('flash'), 120); }
   if (!popoutPanel) channel.postMessage({ type: 'cue', cue: type });
   render();
@@ -532,7 +636,9 @@ function onReport(bytes) {
 }
 
 /* ---------- Timer packets ---------- */
-let candidate = null, liveSeen = 0;
+let candidate = null, liveSeen = 0, lastKey = null;
+let autoProgram = 0;
+let selectedProgram = 'auto';
 function onTimerReport(role, bytes) {
   const n = bytes[0];
   if (!n || n > 7) return;
@@ -550,16 +656,39 @@ function onTimerReport(role, bytes) {
   role.buf = role.buf.slice(i);
   if (role.buf.length > 4096) role.buf = [];
 }
+let lastPrograms = null;
 function applyLive(b) {
-  const live = { total: b[9] * 128 + b[10], yellow: b[12] * 128 + b[13], elapsed: b[15] * 128 + b[16], running: b[6] === 1 };
-  if (live.total > 86400 || live.elapsed > 86400 || live.yellow > live.total) return;
+  const running = b[6] === 1;
+  const programs = [];
+  for (let k = 0; k < 4; k++) {
+    const o = 9 + 11 * k;
+    programs.push({
+      total: b[o] * 128 + b[o + 1],
+      yellow: b[o + 3] * 128 + b[o + 4],
+      elapsed: b[o + 6] * 128 + b[o + 7]
+    });
+  }
+  if (programs.some(p => p.total > 86400 || p.elapsed > 86400)) return;
   liveSeen = Date.now();
-  const key = `${live.total}|${live.yellow}|${live.elapsed}|${live.running}`;
-  const cur = state.live;
-  const same = cur && cur.total === live.total && cur.yellow === live.yellow && cur.elapsed === live.elapsed && cur.running === live.running;
+
+  const key = programs.map(p => `${p.total},${p.yellow},${p.elapsed}`).join('|') + '|' + running;
+  const same = key === lastKey;
   if (!same && candidate !== key) { candidate = key; return; }
   candidate = key;
-  state.live = live;
+
+  // whichever block's clock is moving is the program in use
+  if (lastPrograms) {
+    for (let k = 0; k < 4; k++) {
+      if (programs[k].elapsed !== lastPrograms[k].elapsed) autoProgram = k;
+    }
+  }
+  lastPrograms = programs;
+  lastKey = key;
+
+  const pick = selectedProgram === 'auto' ? autoProgram : selectedProgram;
+  const p = programs[pick] || programs[0];
+  state.programs = programs;
+  state.live = { total: p.total, yellow: p.yellow, elapsed: p.elapsed, running, program: pick + 1 };
   if (!same) { renderTimer(); broadcast(); publish(); }
 }
 setInterval(() => {
@@ -636,6 +765,9 @@ function publish(force) {
     lastCue: state.log.length ? state.log[state.log.length - 1] : null,
     connected: state.connected,
     arrowStyle,
+    arrowStacked,
+    stopAtZero,
+    flashAtZero,
     at: now
   };
   fetch(`${dbBase()}/shows/${showKey}/state.json`, { method: 'PUT', body: JSON.stringify(payload) })
@@ -647,6 +779,37 @@ function publishBackground(bg) {
   if (!showKey) refreshLink();
   fetch(`${dbBase()}/shows/${showKey}/bg.json`, { method: 'PUT', body: JSON.stringify(bg || null) })
     .catch(() => {});
+}
+
+/* ---------- Time of day ---------- */
+let clock24 = false, clockSeconds = true;
+function renderClock() {
+  const el = $('tod');
+  if (!el) return;
+  const d = new Date();
+  let h = d.getHours();
+  let suffix = '';
+  if (!clock24) {
+    suffix = h < 12 ? ' AM' : ' PM';
+    h = h % 12 || 12;
+  }
+  el.textContent = `${clock24 ? pad(h) : h}:${pad(d.getMinutes())}${clockSeconds ? ':' + pad(d.getSeconds()) : ''}${suffix}`;
+  el.className = 'time';
+}
+setInterval(renderClock, 250);
+
+/* ---------- Cue sound ---------- */
+const CLICK_SOUND = 'data:audio/mpeg;base64,SUQzBAAAAAACDVRYWFgAAAASAAADbWFqb3JfYnJhbmQATTRBIABUWFhYAAAAEQAAA21pbm9yX3ZlcnNpb24AMABUWFhYAAAAIAAAA2NvbXBhdGlibGVfYnJhbmRzAE00QSBpc29tbXA0MgBUWFhYAAAAfwAAA2lUdW5TTVBCACAwMDAwMDAwMCAwMDAwMDg0MCAwMDAwMDNDMCAwMDAwMDAwMDAwMDY5MDAwIDAwMDAwMDAwIDAwMDAwMDAwIDAwMDAwMDAwIDAwMDAwMDAwIDAwMDAwMDAwIDAwMDAwMDAwIDAwMDAwMDAwIDAwMDAwMDAwAFRTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//twwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAATAAAYfQAZGRkZGSYmJiYmMzMzMzM/Pz8/Pz9MTExMTFlZWVlZZmZmZmZzc3Nzc3N/f39/f4yMjIyMmZmZmZmmpqampqazs7Ozs8DAwMDAzMzMzMzZ2dnZ2dnm5ubm5vPz8/Pz//////8AAAAATGF2YzYwLjMxAAAAAAAAAAAAAAAAJAQCAAAAAAAAGH1fDmuVAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7cMQAAA0UoTx0Z4ACszFsNzLwAgAAEHCCDnkyZMmTCEM/ggCABRq9Xs7+PhgZE+SsI+A7gLYKsTM62emIDx48ePKXu/fv38e93jx48eRKUpeG/fx8JwggagBbAE4AWAFgHYSMl7OXD4IAh9MEAx/+Jwf+7/BB3qBA56f8vUI3GmkAWq3AA27JbbIbfKOcDsfVuhUOJqpWJnuM460C16DTuUbUDsL2ZCnkewihV0p6xIYp5WBBkJTp+xMa0eROUkhz5VIcpTlx9ywWR/AkTNcRlcVJevn4NxBf0yINYQ5hVqthPnzR///L//+pVadLcrldBevfnX///l///+IIjijevbRo0tcyB9DX3//r5oqyHf/+13uMYzz/gWtmud23r/+LX///Vc6/w3TqKACQAzWOXQeEvK8UvkT/+3LEBwASKWtK/YoAEi2tKmqe0ALcoHbm38GPxFn0VDDccoCXMByCqT5HEMIIT4fwNUBMuBJAMqSJiiTyZMObmalILdZ42M0U6l6aB1qCpwmy8SxAi2MmKMFngNSbD4SIqSoIf//9AijVsyC3///tF+kl/rsdM3TL8jS0XBwFQixsak+TBQLxsUSiVz3T1G4tpgz+DeXKAIJokAyAaoxPAAcDKRoxS9FeTggqTHMRK4Tgf4EgXNQEwcxubmZ4tJET4HoDeKwGaJ2XSAWkgcDeDyJcMCFqJUfCatB3TX3XQPnlsfNkTYeokw4TcOaFWC1C6JgLbpUaKD1LV//GYkyhMTI5Omf//90RxHn/1Pmhkan9lIrZ00HWtkjGjvdFIxNTX/itAEA6ApSSQkTbSYBVtUga1wlckoc2Ov/7cMQLABLxP1FZh4ASRKms6zDwAsAX5HUi3GkbGpMtgSYOYxhYWMuwEwwgonJgM6KJgD4HrPlEs0Ncp/VSdlgZJqKSsKLRrh0srjIVjUSjepG8omCzconw7lmY5zTjA3zrYbQ3sfN0e1yXjobdNx60IWq42t0mt//bNqb//h6rm+/j/3x/8f/////Hzm9/fxNRH+P//qlWAfU+bRAbcckkbLoQhyp1ovxxL263L2ErHaCAo9OYOQ25TlAX1XoISVUAd8KkU1AxRcTkYrPWFsfbYVnNID1ij/M0NW61iHErRTFuP1L53jR2OX/0e0SFG2uhiT7pXKnLnC7+NWIitatbX+/v+Dr//++7////vM/Pp85+F07+////I7+rb3jf1jGfK6Q9n6dKAkCAFACX2Cy8RgABLIN65bL/+3LECIAQlWdRXbmAAjItKfWmTphYi3FgpIAhwid8FLMd2HaJMvoE8bj5GdFAgB5BRpBSNDMFTJsnkyyg6KaJeqUkm88pZqsxSSs04apkYUCgTZuUzYQiATEckqr17dSTnBiM1vKKGXP+nlj//ZIWtSvdLmKBfSPLT5w3c8iipmQzK7+uWTH8yAA4AEACAJfIYFgKYtKxhhjW9ypr6Z9cYiGNionDSCk7YpJRYgJ3LbJjQvDKh0T1poDA8cIokNUY9DpmxV2lbv5vXrzWcxloUJE4NA9kBGXHELGOUN8CEB7U+igpXufHQSq1LbZym1Sf76NTt/oMgpTHRan6tLuUEz7OmyDmrGBs7bJHlo3113LJ7+r0VQAAAXQYLgwtiQiBQATIYqlCXgeJWgwiKDAoMMcjo37ZAVgjFP/7cMQSABMZa0JuZLHCbDLqqZYuqwLDAS5LOrTDl1Pm70jERpydnXAZ4AhQUtRxf2gVTWLlr71PjLeUtSvhjQ5f9qrM2d7xs/SyrKmn4BYK/tKmUhJMAsIJgSe13Val/9441aX4k1p+rWN7/a+n/tQv/yzREATf/M52oxnRk/t3Ygj4iKu78Rf/qSQCAFEJO1PJXRELJpa7LR1K5hr7OJSgjM1kPDRUu/lDl2kpNyiPtbLWMpYc4Cl45LayzLVHlkzSYYYzw/SIj9vKXgqrWJzktxCWPBZNxIHsdSMAQ0+Zmccp2Sw7YQzodG46fN/MV/1///9T//8VwaXX9P9iC2bmjSiKpzzY46bfDNjdFe2JqHUjIB2IM+yf4lzu6mh3l8XLjiYxH4CggAC3UUC03QUBq4WeqZpT15v/+3LECgAQ8YtRTaJUwlQtKOm2j9Citx30fB98dtiuU9S2nHlul3Sh6zAiUOEGfR9VgwXGCspKlLDxUxdDPu4xDmmdGc5AyaEuaKkULgAEzxglUjVvQQMRgoqWg9FIxLhNMaIIOpNSkV1KMklt1L12sofZu6H+dMX2fQZJ6G1mdGzfUUSvb/+ccCAAAAAC4RkFAwSWiZe0q45r1MNQQsIQxMLdDtXcyUGMCAXYmmJwItufm3DfVpBK/BhOjKwQIIHWv2qR/fjuVHy/enOc3nvVFf3/eRDL+XqKYlNvF92CrSgh3lHYajZhJhA8YpLONNeujNlCwBUnk0vrY1WZqb///+pQ0GjMYWO1lXCGIucqJGuoRkVLFv/8Biv7f/7lC9CgIgFuRo79qQlDHXQVaqNkalat+YyFOa0MgP/7cMQOABBhaVlVqIASpKbpdzbwAcSAu1DUulAhw7CRLYpAB/AbYxhcHJJNjcsHFInzNMvqMzf7OyKF6lv0UidLJ8sHiBlMrhik0fapNC6rqIcV0EL7KWeSZRiZIt/dP/7LToEyjZX7rdbst6kHZ0n6V3673ZM8bX/KgksgIoASQAONNpH3e2ygAqlaAUEjC/gEovyW8MMH2VpfOqChc3KNJiQxUSW+Sgg8CCItxdTEQgTsEZJQKo5A1h1BahnCWFtUiqWDENExGBLpRybkirYs8JgM56qoEi7eMUtYTYfwurH6z9ULUN/CjmdOh1nBVENLi/VelHCQ+BMea2yJNno9g7g13BvNq0KNel//qFNCtb//wP6QaarC/hZ96/NsfVZPecqBqgACgB6gA3I0AG5tf+AHLhx8J1n/+3LECYASsTNduaiAAhatKve1MAA0Vo1SNqxNx2cpeDwQ1ZdPkHgLQn0MdEJCoUkCHCRDMEHB4EGjpBHCEE7k6g47C6YTQyMzJZcUi7my3LhqznUkFDrHeJTLcyYxFmjbSPLLgfgPRo6bi5C1Lq5fGXWiUVyICbk1GDfygQwvPoZmUDR7I7sydVO6dZHkgxlNHpVnSR3hQCJgEsAoAz/OKpuueEu1Ar3X3mcKPLSMCeOanlbozkqPJG5QIMOYWRyQMFBBcUCOEaBNE8ZGJjTUXjRJ6KS6LLuq6KNKgiXml0vE8WDEmThRC3o1SS1slSdnQpDZZWkt0CyeWgWTxiy/q1Iav+tBYvDNHqTZGq1aF0qSkV2SXS//zZv5dvTVAUIALALAVnpYAQtb0Muy3WHmHvnNzTSBkmddk//7cMQOAA8Ba1WtDlTB6ygqdaYWoRN0JNnS4UMstO/eigCTrGfyGGKoLMKCJayjOL/0BGjhXgItCMxboGJ8uEVTOGZcBGLqXz31skNQgrp9SFZaMZe//M2//fJVv/UZJIroLUydk2P1V1KWvbzA/f+ZA0hAAAaAEmjrs6S4jaGj2NZYfDzgruiwUUn4qmRFJpt7fmbnLtnlxuJhCI0GS9gVINa64DYk+ysbMl7ED2XstxqNbi1q9YH3eagMmzkTi2JJcEYrAKACVZP/jf1DwedjcpJRXa6///9UVgGL/+5SpNKUziNVSXmr//ApAkAAEgBNxMlcAwW8bysifRmDTX1TodUGBGhcajAGgV5K5RcoJZRV+uGXzRQeC2RHWrSyGJoniImdxZQHbkpT3ugG0gMWaQoH+f//6IH/+3LEJoAOQMtPTJh0Ud+xaam0NqDAzhZcUEkZbkVnPDDZVbqXBYTG3JZARkPQdybX/rD6ioAWIBogBUBwAgCbRwCIcMFCkDm4zUYYdHHRRxfQw8UOvjzJhUIAXlsy6pPVpdDF1ZJlRUDAGGWEruzNWJDweQWqR8Ru6wZ9TbWpRJ44YBEcLwzDyv//7TENSLfqdcxqf/RSPf/9WtFBBTG66mrZaqKk1OikutDqt///+d/WBIAQBABW1VAwAAMYGEQ3Ddx+4Ea1Tt8mQVFU1OMVO80tmpXlV5emJlNAzkeDh6Us9kNv7I9Nillt/5WSzuwvd8O8FQ5DAcjSUoUTF7t1N9xoDy31Ld9L/8zb//91UVKQWoz9BPOOg60qvUvbR///zALqx/+8KQkgFWRp7KWQsfa+5KvGxRxYdv/7cMREAQ6ZiUtNmbTB3TFqabMqmh7buodMEltITBNPSdu5VJTHFyGBGLNIdr8zXkhYmBU3d99/bLol77u/8WjBEeR+eXZ0/sZPcwgQGAbyf7K92If/yH//9TDiI5aseYqFFahp5xxAMBu813JrWYxn//+mLRax1xAIAAAAAHbhARhUTDg5y1rteX/Tto3GHUOpgBcbrEGklhcpGqJvBM0UCZ5UrMl3AYCQqqzm6SzGY7eNBQU47bzPWN48xXyZliU5yiQMSc2u/rd/+ymDI5Sl6zkOxqu/9Tf///KpyqfL3LdhJFL1tU6g7/WSH33ERqAZBaTltqLPVgawvvbWmOPcudpj/IdzvxGw0mXm1bpaa/La84z4s4rE+VT7VITrrautUzZbJLUpeggio2MigkP5HSPGyKddT/T/+3LEYAAOyT9JTZhWwfuxKymWlqvRSolRPGHAuBPSoz5S3ETOd7HL3Ugwd/9X0fV6iYoQTFlRtCiQw7uOI9KnOKuaeYv//6Bb49UAABRpsSV5gQGFqVzt/Db3QY1dwBQEChvAFIIimv2KOBS2Y3K6sGUKdhjNRBwrvPNDVNSBxHhJiSLU/V3Wxt891q6ghdP0BdGRtoEvUfVsmu218yk4D1v/myX/yyj/9ZX76DLXd2QWzKRaunoMjUtVJX///+Yf/y4LAQAEALShQWSASCKuWUBgPS+k23Ma4uswcPjoBDGhYrGzR55C+lO/2PI4o6YRPKwkd+WtNFBsTwED9uz5U96Lha0lnMZRDIIxMaONPRfTr7uCIGk4//za/+VPf+iup1DS6MhqXQjc9zlU53Wkw9untT///5dpNP/7cMR3gA79i0JuJhTB3DFpKcMqkRmCwJIRVjZsAAitLmv20Fkb+KHlnXaXKIVB6QJoChpU4OCRFDd1ZBG+fpuKrAcBi3/2iNzTVhNSSa6r/ulJ1XxxMcTNcA6CAGgTR1E5FJsuiWd06Yti49DqO3//3T/2MT05XKyCHRTvAgYdkdauyHMwoYPhoMIPHmf/WGusAABWQQHICNDLwJYiAF0VAqRAinxCAwAMBNzFWk4IsO6YWARoideNRyficvTLMMQ1x1aqWelkruxWky6A8OYmNmh4i5uqHW8u1jRezAIEdTGscxelN/KDREB8F57/H/MFJHc7/8pV1EIXa3JhzmnQi/EQuG8A+7+sLtSaXQAAIAJJUaTkSTCBRarmulVY5ZhCQrJTBDUz6+MAEQcCoi0Fqbs0tE8Lssr/+3LEkgAPmTtVTSxVUe+fqE28oaBMIOgUdL+vZ7GUCZNHE6fvPeV6h6Q1SsNgb8nKhRYiPPV8b9+/eXSSSSSUZKJoDISJZJ6+zz7P/0STZ2dR6986f+l2ZTU3Sq6VqC01e1f///+c//pAQAwAgAeQhBhgIAGBwOocuQKAKB19PHCXyRXMBFA5AsxoEBwLW44daE2Ja2y7YgmSZHK5bZpuGOougLzA8xUfbVzFS9UgVefYfZcoGqLEVxZpvv9+7fuNAJlv/t/+dt/5Waf9RZzVdbeqmyzdNfR////6zNv/yyoAgCAC9ZUAgKDYKEcDM2bsyxxbrX0E7BzAIUOvmsySFwgFzdW5GKsofSkVsTEMlCcDFxamv7mIwoKQBPuIQ0eIy6C5dvi/NmJ6LHhILJ6vvol6u9XLg4C+N//7cMSoAA/pi01NpbUR27Fo6cQ2oFf/cn//Yu3/xoYrzLmueW5M+qqqqRyKTCy0in/8N2/+gAAA2QwbEwjsMeoUlxYshqBhTTmZmBKGFHGhgnyEH/qHDWDxrTEZlrMRtx1tBCINLMNcpBQlzKlOIxIS7B8AYVG3j5lG4eE3q7VVUqGQkdCrHxxcTxd1c0UHQKgiFr/r5Zf/DP/9RJlS6elrMWyodWigwoiswVcxbP9RagAAk7DRBgqvNOVMQPIBwFKwYwl8mUoQZmIWnIcKHQdXdu670EPi5C3loU8hU2h6XawsZxlrPFJLf85rVFtBeu/SCQqOdlseWEmS8YcTIZ2RASLdUehZgSjL/L//+vNWZTHMViAiBiMPHUpF4QU/QUnF3GhUGsGERwzYJmYyLWmr4CjACELtEJf/+3LEvoIPMUNI7hlUwewoKE2kCqgAzQFBa037Too77vOGka/SYYkNBKVLqQtebKbwHIEByODMdXS8rJJKEI1RHdxUzyYyxpUypqfrm2egXrasNy5nPOR6tmlUWa9mw2WrdtTI5WKMRYZIr///2289qhiGIV0qYMWw/Pzbjd0AAEyAR2zcUjFMTWDTHJx76c8HKmamCIiAQhOABc5AcMjN2XOj8NFk+msSV5i6jdE9RIanK2sak0KkUaYvE8GAxCXv19WUxpI0rp4yYCuO72zSs9KETbaazozWSaRssn/LtpwRrX5JpDy2yVvRwoaSoZqLXJ///////s6hs/2TYshEJFDYcOXGEBOSH9FiaBfiIjG2CYlkP6gPiLOwUC4dAwdXCUtaowZM4BU2AKI/ksHIm5mKFhQeELmSJP/7cMTWg43NQzxtGFSKCSclyaYKqXFAciAA0aRAC6oBNQlkLSU1XZbC8kZUakMopsH1YjJqbMLpzBE8GSTG/kiUBh6iqFldCFYRIpqtEroll4f2pkhk9/qdSWfHJhhJDnCgKOGmf//y6silM7I91l0DKisysY7S/8qcG7/2HnAVM1djUSc57DOUPU5THB8QCRj4QlSFglJkwItMqAjY34BVQCq5ZsukOjQGCZyFwIZgZr+ggK81exF4E6o/ORp9msmrzS56UoIoxBA6DURVLRKjvWAyMl1tKolKs+V1l1mXFy46PnrWOVLS765dbCYu1r1rTZcfQremrpL/LUCIGXEYlKgq5QUPFToNSz56z/9BlzhkEJiUwAUiNYOrQYsCrElbGLgGGhgGESfgTYy7TSiNVkzlDAGLXpf/+3DE8AOSfVkobSUYwkusI4mkixgJnIAS3QoGSiFQUUFHRCQUgAQno8JjrEXe7ZAqiIREMh4DwdB4DxAKyQ+ZaRISIQiIZBwRiAodLFSx0oXKHE0k1JwnCrlFZVJNJZVZNJeE4ZsZRkmknYqIzNQsLN9IMhUVFRQWFhYLCoqz/9Qs3//Z//8VTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//tyxO6D0fTZBg3hjQJxm0+BrKVoVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=';
+let soundOn = false;
+let clickAudio = null;
+function playClick() {
+  if (!soundOn) return;
+  try {
+    if (!clickAudio) clickAudio = new Audio(CLICK_SOUND);
+    const a = clickAudio.cloneNode();
+    a.volume = 1;
+    a.play().catch(() => {});
+  } catch {}
 }
 
 /* ---------- Camera ---------- */
@@ -776,6 +939,52 @@ if (!popoutPanel) {
   });
   $('plus').addEventListener('click', () => applyCue('next'));
   $('minus').addEventListener('click', () => applyCue('back'));
+  document.querySelectorAll('.prog').forEach(btn => btn.addEventListener('click', () => {
+    selectedProgram = btn.dataset.prog === 'auto' ? 'auto' : Number(btn.dataset.prog);
+    if (state.programs) {
+      const pick = selectedProgram === 'auto' ? autoProgram : selectedProgram;
+      const p = state.programs[pick];
+      if (p) state.live = { total: p.total, yellow: p.yellow, elapsed: p.elapsed, running: state.live ? state.live.running : false, program: pick + 1 };
+    }
+    renderTimer();
+    save();
+    publish(true);
+  }));
+  $('todFormat').addEventListener('click', e => {
+    clock24 = !clock24;
+    e.target.textContent = clock24 ? '12 hour' : '24 hour';
+    renderClock();
+    save();
+  });
+  $('todSeconds').addEventListener('click', e => {
+    clockSeconds = !clockSeconds;
+    e.target.textContent = clockSeconds ? 'Hide seconds' : 'Show seconds';
+    renderClock();
+    save();
+  });
+  $('flashZero').addEventListener('change', e => {
+    flashAtZero = e.target.checked;
+    renderTimer();
+    save();
+    publish(true);
+  });
+  $('stopZero').addEventListener('change', e => {
+    stopAtZero = e.target.checked;
+    renderTimer();
+    save();
+    publish(true);
+  });
+  $('sound').addEventListener('change', e => {
+    soundOn = e.target.checked;
+    if (soundOn) playClick();
+    save();
+  });
+  $('stacked').addEventListener('change', e => {
+    arrowStacked = e.target.checked;
+    applyLayout(arrowStacked);
+    save();
+    publish(true);
+  });
   $('camApply').addEventListener('click', () => startCamera($('camUrl').value.trim(), $('camMode').value));
   $('camStop').addEventListener('click', stopCamera);
   $('arrowStyle').addEventListener('change', e => {
@@ -784,8 +993,9 @@ if (!popoutPanel) {
     save();
     publish(true);
   });
-  $('arrowNext').addEventListener('click', () => applyCue('next'));
-  $('arrowBack').addEventListener('click', () => applyCue('back'));
+  document.querySelectorAll('.cue-arrow').forEach(svg => {
+    svg.addEventListener('click', () => applyCue(svg.classList.contains('back') ? 'back' : 'next'));
+  });
 }
 
 if (!popoutPanel && 'hid' in navigator) {
@@ -815,7 +1025,19 @@ if (!popoutPanel && 'hid' in navigator) {
 
 loadSaved();
 if ($('arrowStyle')) $('arrowStyle').value = arrowStyle;
+if ($('stacked')) $('stacked').checked = arrowStacked;
+try {
+  const savedLayout = JSON.parse(localStorage.getItem('cue-console') || '{}').layout || {};
+  ['win-next', 'win-back'].forEach(id => { if (!savedLayout[id]) minimize($(id), true); });
+} catch {}
+if ($('sound')) $('sound').checked = soundOn;
+if ($('stopZero')) $('stopZero').checked = stopAtZero;
+if ($('flashZero')) $('flashZero').checked = flashAtZero;
+if ($('todFormat')) $('todFormat').textContent = clock24 ? '12 hour' : '24 hour';
+if ($('todSeconds')) $('todSeconds').textContent = clockSeconds ? 'Hide seconds' : 'Show seconds';
+renderClock();
 paintArrows(arrowStyle);
+applyLayout(arrowStacked);
 render();
 if (!popoutPanel) { refreshLink(); publish(true); }
 </script>

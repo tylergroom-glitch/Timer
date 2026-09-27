@@ -25,10 +25,23 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex San
 #time.amber{color:var(--amber)}
 #time.red{color:var(--red)}
 #time.over{animation:blink 1s steps(2,end) infinite}
+body.flashing{animation:zeroFlash 1s steps(1,end) infinite}
+@keyframes zeroFlash{0%,49%{background-color:transparent}50%,100%{background-color:rgba(248,81,73,.3)}}
 @keyframes blink{50%{opacity:.35}}
 #sub{color:var(--dim);font-size:clamp(13px,2.2vh,17px)}
 .arrows{display:flex;gap:6vw;align-items:center;justify-content:center;width:min(76vw,620px)}
 .arrows svg{width:44%}
+.arrows.stacked{flex-direction:column;gap:0;justify-content:center;align-items:center}
+.arrows.stacked svg{width:min(52vw,400px);height:auto}
+.arrows.stacked .style-bulbs{width:min(58vw,440px)}
+.arrows.stacked .style-bulbs.back{margin-top:-14%}
+.arrows.stacked .style-classic{width:min(58vw,440px)}
+.arrows.stacked .style-classic.back{margin-top:-28%}
+.arrows.stacked .style-chase.back{margin-top:-14%}
+.arrows.stacked .style-star.back,.arrows.stacked .style-pointer.back{margin-top:-4%}
+.arrows.stacked .cue-arrow.next{transform:translate(3%,-6%)}
+.arrows.stacked .cue-arrow.back{transform:translate(5%,0)}
+
 .cue-arrow polygon,.cue-arrow path,.cue-arrow circle{opacity:.4}
 .cue-arrow.next polygon,.cue-arrow.next path,.cue-arrow.next circle{fill:var(--green)}
 .cue-arrow.back polygon,.cue-arrow.back path,.cue-arrow.back circle{fill:var(--red)}
@@ -54,6 +67,20 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex San
 .cue-arrow.style-chase.fire .ch3{animation:flare .8s ease-out .24s}
 @keyframes flare{0%{opacity:.45}12%{opacity:1}65%{opacity:1}100%{opacity:.45}}
 
+/* bulbs: lamp array that lights column by column */
+.cue-arrow.style-bulbs circle{opacity:.3}
+.cue-arrow.style-bulbs .gloss{fill:#fff !important;opacity:.13}
+.cue-arrow.style-bulbs.fire .gloss{animation:gloss .85s ease-out}
+@keyframes gloss{0%{opacity:.13}10%{opacity:.5}65%{opacity:.45}100%{opacity:.13}}
+.cue-arrow.style-bulbs.fire .b1 circle{animation:lamp .9s ease-out 0.000s}
+.cue-arrow.style-bulbs.fire .b2 circle{animation:lamp .9s ease-out 0.055s}
+.cue-arrow.style-bulbs.fire .b3 circle{animation:lamp .9s ease-out 0.110s}
+.cue-arrow.style-bulbs.fire .b4 circle{animation:lamp .9s ease-out 0.165s}
+.cue-arrow.style-bulbs.fire .b5 circle{animation:lamp .9s ease-out 0.220s}
+.cue-arrow.style-bulbs.fire .b6 circle{animation:lamp .9s ease-out 0.275s}
+.cue-arrow.style-bulbs.fire .b7 circle{animation:lamp .9s ease-out 0.330s}
+@keyframes lamp{0%{opacity:.3}10%{opacity:1}65%{opacity:1}100%{opacity:.3}}
+
 /* star: pops and spins */
 .cue-arrow.style-star .shape{transform-box:fill-box;transform-origin:center}
 .cue-arrow.style-star.fire .shape{animation:starPop .75s cubic-bezier(.2,1.4,.4,1)}
@@ -69,6 +96,7 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex San
   35%{opacity:1;transform:translateX(10px) scale(1.12)}
   65%{opacity:1;transform:translateX(0) scale(1)}
   100%{opacity:.45;transform:translateX(0) scale(1)}}
+
 #slide{font-size:clamp(14px,2.4vh,19px);color:var(--dim)}
 #slide b{color:var(--text);font-weight:500}
 #state{position:fixed;top:10px;right:14px;font-size:13px;color:var(--dim)}
@@ -108,6 +136,7 @@ if (!db || !key) {
 
 let lastCueAt = 0;
 let shownStyle = null;
+let shownStacked = false;
 const arrowIdPrefix = 'a';
 const ARROW_STYLES = {
   classic: '<polygon class="shape" points="8,10 8,90 94,50"/>',
@@ -115,20 +144,30 @@ const ARROW_STYLES = {
           '<g class="ch2" transform="translate(25,0)"><path d="M0 12 L28 50 L0 88 L20 88 L48 50 L20 12 Z"/></g>',
           '<g class="ch3" transform="translate(50,0)"><path d="M0 12 L28 50 L0 88 L20 88 L48 50 L20 12 Z"/></g>'].join(''),
   star: '<polygon class="shape" points="50,5 61,37 95,37 67,57 78,92 50,71 22,92 33,57 5,37 39,37"/>',
-  pointer: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F449}</text>'
+  pointer: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F449}</text>',
+  bulbs: '<g class="b1"><circle cx="8" cy="9.2" r="6.4"/><circle class="gloss" cx="6.2" cy="7.2" r="2.1"/><circle cx="8" cy="22.8" r="6.4"/><circle class="gloss" cx="6.2" cy="20.8" r="2.1"/><circle cx="8" cy="36.4" r="6.4"/><circle class="gloss" cx="6.2" cy="34.4" r="2.1"/><circle cx="8" cy="50.0" r="6.4"/><circle class="gloss" cx="6.2" cy="48.0" r="2.1"/><circle cx="8" cy="63.6" r="6.4"/><circle class="gloss" cx="6.2" cy="61.6" r="2.1"/><circle cx="8" cy="77.2" r="6.4"/><circle class="gloss" cx="6.2" cy="75.2" r="2.1"/><circle cx="8" cy="90.8" r="6.4"/><circle class="gloss" cx="6.2" cy="88.8" r="2.1"/></g><g class="b2"><circle cx="22" cy="16.0" r="6.4"/><circle class="gloss" cx="20.2" cy="14.0" r="2.1"/><circle cx="22" cy="29.6" r="6.4"/><circle class="gloss" cx="20.2" cy="27.6" r="2.1"/><circle cx="22" cy="43.2" r="6.4"/><circle class="gloss" cx="20.2" cy="41.2" r="2.1"/><circle cx="22" cy="56.8" r="6.4"/><circle class="gloss" cx="20.2" cy="54.8" r="2.1"/><circle cx="22" cy="70.4" r="6.4"/><circle class="gloss" cx="20.2" cy="68.4" r="2.1"/><circle cx="22" cy="84.0" r="6.4"/><circle class="gloss" cx="20.2" cy="82.0" r="2.1"/></g><g class="b3"><circle cx="36" cy="22.8" r="6.4"/><circle class="gloss" cx="34.2" cy="20.8" r="2.1"/><circle cx="36" cy="36.4" r="6.4"/><circle class="gloss" cx="34.2" cy="34.4" r="2.1"/><circle cx="36" cy="50.0" r="6.4"/><circle class="gloss" cx="34.2" cy="48.0" r="2.1"/><circle cx="36" cy="63.6" r="6.4"/><circle class="gloss" cx="34.2" cy="61.6" r="2.1"/><circle cx="36" cy="77.2" r="6.4"/><circle class="gloss" cx="34.2" cy="75.2" r="2.1"/></g><g class="b4"><circle cx="50" cy="29.6" r="6.4"/><circle class="gloss" cx="48.2" cy="27.6" r="2.1"/><circle cx="50" cy="43.2" r="6.4"/><circle class="gloss" cx="48.2" cy="41.2" r="2.1"/><circle cx="50" cy="56.8" r="6.4"/><circle class="gloss" cx="48.2" cy="54.8" r="2.1"/><circle cx="50" cy="70.4" r="6.4"/><circle class="gloss" cx="48.2" cy="68.4" r="2.1"/></g><g class="b5"><circle cx="64" cy="36.4" r="6.4"/><circle class="gloss" cx="62.2" cy="34.4" r="2.1"/><circle cx="64" cy="50.0" r="6.4"/><circle class="gloss" cx="62.2" cy="48.0" r="2.1"/><circle cx="64" cy="63.6" r="6.4"/><circle class="gloss" cx="62.2" cy="61.6" r="2.1"/></g><g class="b6"><circle cx="78" cy="43.2" r="6.4"/><circle class="gloss" cx="76.2" cy="41.2" r="2.1"/><circle cx="78" cy="56.8" r="6.4"/><circle class="gloss" cx="76.2" cy="54.8" r="2.1"/></g><g class="b7"><circle cx="92" cy="50.0" r="6.4"/><circle class="gloss" cx="90.2" cy="48.0" r="2.1"/></g>'
 };
-const ARROW_NAMES = { classic: 'Classic', chase: 'Chase', star: 'Stars', pointer: 'Finger' };
+const ARROW_NAMES = { classic: 'Classic', chase: 'Chase', star: 'Stars', pointer: 'Finger', bulbs: 'Bulbs' };
+function applyLayout(on) {
+  document.querySelectorAll('.arrows').forEach(row => {
+    row.classList.toggle('stacked', !!on);
+    const next = row.querySelector('.cue-arrow.next');
+    const back = row.querySelector('.cue-arrow.back');
+    if (!next || !back) return;
+    if (on) row.prepend(next); else row.prepend(back);
+  });
+}
+
 function paintArrows(style) {
   const s = ARROW_STYLES[style] ? style : 'classic';
-  for (const dir of ['Next', 'Back']) {
-    const svg = document.getElementById(arrowIdPrefix + dir);
-    if (!svg) continue;
+  document.querySelectorAll('.cue-arrow').forEach(svg => {
+    const dir = svg.classList.contains('back') ? 'back' : 'next';
     const inner = ARROW_STYLES[s];
-    svg.innerHTML = dir === 'Back'
+    svg.innerHTML = dir === 'back'
       ? `<g transform="scale(-1,1) translate(-100,0)">${inner}</g>`
       : inner;
-    svg.setAttribute('class', `cue-arrow ${dir.toLowerCase()} style-${s}`);
-  }
+    svg.setAttribute('class', `cue-arrow ${dir} style-${s}`);
+  });
 }
 paintArrows('classic');
 
@@ -136,16 +175,21 @@ function paint(d) {
   if (!d) return;
   const live = d.live;
   if (live) {
-    const left = live.total - live.elapsed;
+    let left = live.total - live.elapsed;
+    const over = left < 0;
+    if (d.stopAtZero && over) left = 0;
     $('time').textContent = fmt(left);
-    $('time').className = left <= 0 ? 'red over' : left <= live.yellow ? 'amber' : 'green';
-    $('sub').textContent = `Set ${fmt(live.total)} · ${live.running ? 'running' : 'stopped'}`;
+    $('time').className = left <= 0 ? (over && !d.stopAtZero ? 'red over' : 'red') : left <= live.yellow ? 'amber' : 'green';
+    document.body.classList.toggle('flashing', !!d.flashAtZero && left <= 0);
+    $('sub').textContent = `${live.program ? 'Program ' + live.program + ' · ' : ''}Set ${fmt(live.total)} · ${live.running ? 'running' : 'stopped'}`;
   } else {
     $('time').textContent = '--:--';
     $('time').className = '';
+    document.body.classList.remove('flashing');
     $('sub').textContent = 'Timer not running';
   }
   if (d.arrowStyle && d.arrowStyle !== shownStyle) { shownStyle = d.arrowStyle; paintArrows(d.arrowStyle); }
+  if (typeof d.arrowStacked === 'boolean' && d.arrowStacked !== shownStacked) { shownStacked = d.arrowStacked; applyLayout(d.arrowStacked); }
   $('slideNum').textContent = d.slide != null ? d.slide : 0;
   if (d.lastCue && d.lastCue.at && d.lastCue.at !== lastCueAt) {
     lastCueAt = d.lastCue.at;
@@ -154,13 +198,13 @@ function paint(d) {
 }
 
 function flash(type) {
-  const el = $(type === 'next' ? 'aNext' : 'aBack');
-  if (!el) return;
-  el.classList.remove('fire');
-  void el.offsetWidth;
-  el.classList.add('fire');
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('fire'), 1600);
+  document.querySelectorAll('.cue-arrow.' + type).forEach(el => {
+    el.classList.remove('fire');
+    void el.offsetWidth;
+    el.classList.add('fire');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('fire'), 1600);
+  });
 }
 
 function loadBackground() {
