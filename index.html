@@ -31,6 +31,7 @@ a{color:var(--blue)}
 .dot{width:9px;height:9px;border-radius:50%;background:#46505C}
 .dot.on{background:var(--green)}
 .dot.flash{background:#BFF3C8}
+.al{padding:2px 7px;font-size:13px;line-height:1.2}
 .swatch{width:20px;height:20px;padding:0;border-radius:5px;border:1px solid #0006;cursor:pointer}
 .swatch:hover{outline:2px solid var(--blue);outline-offset:1px}
 .swatch.on{outline:2px solid var(--text);outline-offset:1px}
@@ -41,6 +42,7 @@ a{color:var(--blue)}
 .win header{display:flex;align-items:center;gap:6px;padding:6px 8px 6px 11px;background:var(--head);border-bottom:1px solid var(--line);
   border-radius:9px 9px 0 0;cursor:grab;user-select:none;font-size:13px;color:var(--dim)}
 .win header .name{margin-right:auto;font-weight:500;color:var(--text)}
+.win.active{outline:1px solid var(--blue);outline-offset:2px}
 .win.clear{background:transparent;border-color:transparent;box-shadow:none}
 .win.clear header{opacity:0;background:transparent;border-bottom-color:transparent;transition:opacity .12s ease}
 .win.clear:hover header{opacity:1;background:var(--head);border-bottom-color:var(--line)}
@@ -218,6 +220,17 @@ body.popout .win header{display:none}
       <option value="">—</option>
     </select>
   </label>
+  <span class="pill" id="alignBar" style="gap:4px">Align
+    <button class="al" data-a="left" title="Align left">&#8676;</button>
+    <button class="al" data-a="hcenter" title="Centre across">&#8703;</button>
+    <button class="al" data-a="right" title="Align right">&#8677;</button>
+    <button class="al" data-a="top" title="Align top">&#8673;</button>
+    <button class="al" data-a="vcenter" title="Centre down">&#8691;</button>
+    <button class="al" data-a="bottom" title="Align bottom">&#8675;</button>
+    <button class="al" data-a="hdist" title="Space evenly across">&#8596;</button>
+    <button class="al" data-a="vdist" title="Space evenly down">&#8597;</button>
+    <label style="cursor:pointer;color:var(--dim);font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" id="alignPage"> to page</label>
+  </span>
   <button id="layoutSave">Save as…</button>
   <button id="layoutDelete">Delete</button>
   <button id="resetLayout">Reset layout</button>
@@ -501,6 +514,97 @@ function applyBackground(bg, store) {
       else localStorage.removeItem('cue-console-bg');
     } catch {}
   }
+}
+
+/* ---------- Selection, keyboard nudging, alignment ---------- */
+let selection = [];
+function setSelection(list) {
+  document.querySelectorAll('.win.active').forEach(w => w.classList.remove('active'));
+  selection = list.filter(Boolean);
+  selection.forEach(w => w.classList.add('active'));
+  if (selection.length) selection[selection.length - 1].style.zIndex = ++z;
+}
+function box(w) {
+  return { left: parseFloat(w.style.left) || 0, top: parseFloat(w.style.top) || 0,
+           width: w.offsetWidth, height: w.offsetHeight };
+}
+function place(w, left, top) {
+  w.style.left = Math.round(left) + 'px';
+  w.style.top = Math.round(top) + 'px';
+}
+
+if (!popoutPanel) {
+  document.addEventListener('pointerdown', e => {
+    const win = e.target.closest('.win');
+    if (win) {
+      if (e.shiftKey || e.metaKey || e.ctrlKey) {
+        setSelection(selection.includes(win) ? selection.filter(w => w !== win) : selection.concat(win));
+      } else if (!selection.includes(win)) {
+        setSelection([win]);
+      }
+    } else if (!e.target.closest('#bar, #dock')) setSelection([]);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (!selection.length) return;
+    if (e.target.closest('input, select, textarea')) return;
+    if (e.key === 'Escape') { setSelection([]); return; }
+    const keys = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    const dir = keys[e.key];
+    if (!dir) return;
+    e.preventDefault();
+    const step = e.shiftKey ? 10 : 1;
+    selection.forEach(w => {
+      const b = box(w);
+      if (e.altKey) {
+        w.style.width = Math.max(110, b.width + dir[0] * step) + 'px';
+        w.style.height = Math.max(70, b.height + dir[1] * step) + 'px';
+      } else {
+        place(w, b.left + dir[0] * step, b.top + dir[1] * step);
+      }
+    });
+    save();
+  });
+
+  document.querySelectorAll('.al').forEach(btn => btn.addEventListener('click', () => {
+    const toPage = $('alignPage').checked;
+    let wins = selection.filter(w => w.dataset.min !== '1');
+    if (!wins.length) return;
+    const ws = $('workspace').getBoundingClientRect();
+    const boxes = wins.map(box);
+    const bounds = toPage
+      ? { l: 0, t: 0, r: ws.width, b: ws.height }
+      : { l: Math.min(...boxes.map(b => b.left)), t: Math.min(...boxes.map(b => b.top)),
+          r: Math.max(...boxes.map(b => b.left + b.width)), b: Math.max(...boxes.map(b => b.top + b.height)) };
+    const a = btn.dataset.a;
+
+    if (a === 'hdist' || a === 'vdist') {
+      if (wins.length < 3) return;
+      const horiz = a === 'hdist';
+      const sorted = wins.map((w, i) => ({ w, b: boxes[i] }))
+        .sort((x, y) => horiz ? x.b.left - y.b.left : x.b.top - y.b.top);
+      const first = sorted[0].b, last = sorted[sorted.length - 1].b;
+      const span = horiz ? (last.left - first.left) : (last.top - first.top);
+      const gap = span / (sorted.length - 1);
+      sorted.forEach((item, i) => {
+        if (horiz) place(item.w, first.left + gap * i, item.b.top);
+        else place(item.w, item.b.left, first.top + gap * i);
+      });
+      save();
+      return;
+    }
+
+    wins.forEach((w, i) => {
+      const b = boxes[i];
+      if (a === 'left') place(w, bounds.l, b.top);
+      if (a === 'right') place(w, bounds.r - b.width, b.top);
+      if (a === 'hcenter') place(w, (bounds.l + bounds.r) / 2 - b.width / 2, b.top);
+      if (a === 'top') place(w, b.left, bounds.t);
+      if (a === 'bottom') place(w, b.left, bounds.b - b.height);
+      if (a === 'vcenter') place(w, b.left, (bounds.t + bounds.b) / 2 - b.height / 2);
+    });
+    save();
+  }));
 }
 
 /* ---------- Named layouts ---------- */
