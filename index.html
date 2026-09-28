@@ -863,12 +863,14 @@ function applyLive(b) {
   }
   if (programs.some(p => p.total > 86400 || p.elapsed > 86400)) return;
   const selected = b[5] >= 0 && b[5] <= 3 ? b[5] : 0;
-  const flags = b[17] || 0;
-  const blink = !!(flags & 2);
-  const beep = !!(flags & 4);
+  const allFlags = [0, 1, 2, 3].map(k => b[9 + 11 * k + 8] || 0);
+  const flags = allFlags[selected] || 0;
+  const anyFlags = allFlags.reduce((a, v) => a | v, 0);
+  const blink = !!((flags | anyFlags) & 2);
+  const beep = !!((flags | anyFlags) & 4);
   liveSeen = Date.now();
 
-  const key = programs.map(p => `${p.total},${p.yellow},${p.elapsed}`).join('|') + '|' + selected + '|' + flags;
+  const key = programs.map(p => `${p.total},${p.yellow},${p.elapsed}`).join('|') + '|' + selected + '|' + allFlags.join(',');
   const same = key === lastKey;
   if (!same && candidate !== key) { candidate = key; return; }
   candidate = key;
@@ -892,7 +894,7 @@ function applyLive(b) {
     save();
   }
   state.live = { total: p.total, yellow: p.yellow, elapsed: p.elapsed,
-    running: runningNow && pick === selected, program: pick + 1, blink, beep, flags };
+    running: runningNow && pick === selected, program: pick + 1, blink, beep, flags: allFlags.join('/') };
   if (beep && !wasBeeping) playClick();
   if (!same) { renderTimer(); broadcast(); publish(); }
 }
