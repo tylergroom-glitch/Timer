@@ -37,7 +37,7 @@ a{color:var(--blue)}
 
 #workspace{position:relative;height:calc(100% - 53px);overflow:hidden}
 .win{position:absolute;background:rgba(27,34,44,.9);border:1px solid var(--line);border-radius:10px;
-  display:flex;flex-direction:column;min-width:180px;min-height:120px;box-shadow:0 10px 30px #0006}
+  display:flex;flex-direction:column;min-width:110px;min-height:70px;box-shadow:0 10px 30px #0006}
 .win header{display:flex;align-items:center;gap:6px;padding:6px 8px 6px 11px;background:var(--head);border-bottom:1px solid var(--line);
   border-radius:9px 9px 0 0;cursor:grab;user-select:none;font-size:13px;color:var(--dim)}
 .win header .name{margin-right:auto;font-weight:500;color:var(--text)}
@@ -50,7 +50,11 @@ a{color:var(--blue)}
 .win.clear .cue-arrow{filter:drop-shadow(0 3px 9px rgba(0,0,0,.6))}
 .win header button{padding:1px 8px;font-size:13px;background:transparent;border-color:transparent;color:var(--dim);line-height:1.3}
 .win header button:hover{background:#2F3B4E;color:var(--text)}
-.body{flex:1;overflow:auto;padding:12px 14px;container-type:size}
+.body{flex:1;overflow:auto;padding:4px;container-type:size;cursor:grab}
+.win:has(.arrows),.win:has(.solo){overflow:visible}
+.body:has(.arrows),.body:has(.solo){overflow:visible}
+#remote,#camBody{cursor:default}
+#remote,#camBody,.body:has(.stat),.body:has(#log){padding:10px 12px}
 .grip{position:absolute;right:2px;bottom:2px;width:18px;height:18px;cursor:nwse-resize;
   background:linear-gradient(135deg,transparent 50%,var(--line) 50%,var(--line) 60%,transparent 60%,transparent 72%,var(--line) 72%,var(--line) 82%,transparent 82%)}
 
@@ -60,16 +64,18 @@ a{color:var(--blue)}
 #dock button{pointer-events:auto;background:var(--head);border-color:var(--line)}
 #dock button::before{content:'\2197';margin-right:6px;color:var(--dim)}
 
-.timer{display:flex;flex-direction:column;height:100%;justify-content:center;border-radius:8px}
+.timer{display:flex;flex-direction:column;height:100%;justify-content:center;border-radius:8px;overflow:hidden}
 .timer.flashing .time{animation:zeroFlash 1s steps(1,end) infinite}
 @keyframes zeroFlash{0%,49%{opacity:1}50%,100%{opacity:.12}}
-.time{font-weight:500;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em;text-align:center;font-size:min(38cqh,26cqw)}
+.time{font-weight:500;font-variant-numeric:tabular-nums;line-height:.9;letter-spacing:-.03em;text-align:center;font-size:min(96cqh,30cqw)}
+body.hide-details .timer{justify-content:center}
+body.hide-details .time{font-size:min(100cqh,31cqw)}
 .time.green{color:var(--green)}
 .time.amber{color:var(--amber)}
 .time.red{color:var(--red)}
 .time.over{animation:blink 1s steps(2,end) infinite}
 @keyframes blink{50%{opacity:.35}}
-.sub{color:var(--dim);text-align:center;margin-top:8px;font-size:clamp(11px,6cqh,15px)}
+.sub{color:var(--dim);text-align:center;margin-top:4px;font-size:clamp(10px,5cqh,14px)}
 .prog{padding:3px 9px;font-size:12px;opacity:.75}
 .prog.on{background:#1F4E8C;border-color:#2B63AD;opacity:1}
 .prog.live{outline:1px solid var(--green)}
@@ -78,20 +84,20 @@ body.hide-details #tSource,body.hide-details #progRow{display:none}
 .win.clear:hover #progRow{opacity:1}
 
 .solo{display:flex;align-items:center;justify-content:center;height:100%}
-.solo svg{height:94%;width:100%;cursor:pointer}
+.solo svg{height:100%;width:100%;cursor:pointer}
 .arrows{display:flex;align-items:center;justify-content:center;gap:5%;height:100%}
-.arrows svg{height:86%;width:45%;cursor:pointer}
+.arrows svg{height:100%;width:48%;cursor:pointer}
 .arrows.stacked{flex-direction:column;gap:0;justify-content:center;align-items:center}
 .arrows.stacked svg{height:52%;width:auto;max-width:100%}
-.arrows.stacked .style-bulbs{height:58%}
+.arrows.stacked .style-bulbs{height:55%}
 .arrows.stacked .style-bulbs.back{margin-top:-14%}
-.arrows.stacked .style-classic{height:58%}
+.arrows.stacked .style-classic{height:55%}
 .arrows.stacked .style-classic.back{margin-top:-28%}
 .arrows.stacked .style-chase{height:46%}
 .arrows.stacked .style-chase.back{margin-top:-14%}
 .arrows.stacked .style-star,.arrows.stacked .style-pointer{height:46%}
 .arrows.stacked .style-star.back,.arrows.stacked .style-pointer.back{margin-top:-4%}
-.arrows.stacked .cue-arrow.next{transform:translate(3%,-6%)}
+.arrows.stacked .cue-arrow.next{transform:translate(3%,-4%)}
 .arrows.stacked .cue-arrow.back{transform:translate(5%,0)}
 
 .cue-arrow polygon,.cue-arrow path,.cue-arrow circle{opacity:.4}
@@ -149,7 +155,7 @@ body.hide-details #tSource,body.hide-details #progRow{display:none}
   65%{opacity:1;transform:translateX(0) scale(1)}
   100%{opacity:.45;transform:translateX(0) scale(1)}}
 
-.count{font-weight:500;font-variant-numeric:tabular-nums;line-height:1;text-align:center;font-size:min(34cqh,40cqw)}
+.count{font-weight:500;font-variant-numeric:tabular-nums;line-height:.95;text-align:center;font-size:min(52cqh,42cqw)}
 .row{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
 
 #log{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px}
@@ -207,6 +213,13 @@ body.popout .win header{display:none}
   <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="stopZero"> Stop at 0:00</label>
   <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="flashZero"> Flash at 0:00</label>
   <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="showDetails"> Clock details</label>
+  <label class="pill" style="gap:6px">Layout
+    <select id="layoutPick" style="background:#131920;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font:inherit">
+      <option value="">—</option>
+    </select>
+  </label>
+  <button id="layoutSave">Save as…</button>
+  <button id="layoutDelete">Delete</button>
   <button id="resetLayout">Reset layout</button>
 </div>
 
@@ -427,6 +440,7 @@ const ARROW_STYLES = {
   pointer: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F449}</text>',
   bulbs: '<g class="b1"><circle cx="8" cy="9.2" r="6.4"/><circle class="gloss" cx="6.2" cy="7.2" r="2.1"/><circle cx="8" cy="22.8" r="6.4"/><circle class="gloss" cx="6.2" cy="20.8" r="2.1"/><circle cx="8" cy="36.4" r="6.4"/><circle class="gloss" cx="6.2" cy="34.4" r="2.1"/><circle cx="8" cy="50.0" r="6.4"/><circle class="gloss" cx="6.2" cy="48.0" r="2.1"/><circle cx="8" cy="63.6" r="6.4"/><circle class="gloss" cx="6.2" cy="61.6" r="2.1"/><circle cx="8" cy="77.2" r="6.4"/><circle class="gloss" cx="6.2" cy="75.2" r="2.1"/><circle cx="8" cy="90.8" r="6.4"/><circle class="gloss" cx="6.2" cy="88.8" r="2.1"/></g><g class="b2"><circle cx="22" cy="16.0" r="6.4"/><circle class="gloss" cx="20.2" cy="14.0" r="2.1"/><circle cx="22" cy="29.6" r="6.4"/><circle class="gloss" cx="20.2" cy="27.6" r="2.1"/><circle cx="22" cy="43.2" r="6.4"/><circle class="gloss" cx="20.2" cy="41.2" r="2.1"/><circle cx="22" cy="56.8" r="6.4"/><circle class="gloss" cx="20.2" cy="54.8" r="2.1"/><circle cx="22" cy="70.4" r="6.4"/><circle class="gloss" cx="20.2" cy="68.4" r="2.1"/><circle cx="22" cy="84.0" r="6.4"/><circle class="gloss" cx="20.2" cy="82.0" r="2.1"/></g><g class="b3"><circle cx="36" cy="22.8" r="6.4"/><circle class="gloss" cx="34.2" cy="20.8" r="2.1"/><circle cx="36" cy="36.4" r="6.4"/><circle class="gloss" cx="34.2" cy="34.4" r="2.1"/><circle cx="36" cy="50.0" r="6.4"/><circle class="gloss" cx="34.2" cy="48.0" r="2.1"/><circle cx="36" cy="63.6" r="6.4"/><circle class="gloss" cx="34.2" cy="61.6" r="2.1"/><circle cx="36" cy="77.2" r="6.4"/><circle class="gloss" cx="34.2" cy="75.2" r="2.1"/></g><g class="b4"><circle cx="50" cy="29.6" r="6.4"/><circle class="gloss" cx="48.2" cy="27.6" r="2.1"/><circle cx="50" cy="43.2" r="6.4"/><circle class="gloss" cx="48.2" cy="41.2" r="2.1"/><circle cx="50" cy="56.8" r="6.4"/><circle class="gloss" cx="48.2" cy="54.8" r="2.1"/><circle cx="50" cy="70.4" r="6.4"/><circle class="gloss" cx="48.2" cy="68.4" r="2.1"/></g><g class="b5"><circle cx="64" cy="36.4" r="6.4"/><circle class="gloss" cx="62.2" cy="34.4" r="2.1"/><circle cx="64" cy="50.0" r="6.4"/><circle class="gloss" cx="62.2" cy="48.0" r="2.1"/><circle cx="64" cy="63.6" r="6.4"/><circle class="gloss" cx="62.2" cy="61.6" r="2.1"/></g><g class="b6"><circle cx="78" cy="43.2" r="6.4"/><circle class="gloss" cx="76.2" cy="41.2" r="2.1"/><circle cx="78" cy="56.8" r="6.4"/><circle class="gloss" cx="76.2" cy="54.8" r="2.1"/></g><g class="b7"><circle cx="92" cy="50.0" r="6.4"/><circle class="gloss" cx="90.2" cy="48.0" r="2.1"/></g>'
 };
+const ARROW_BOXES = { classic: '8 10 86 80', chase: '0 12 98 76', bulbs: '1 2 98 96', star: '4 4 92 90', pointer: '0 0 100 100' };
 const ARROW_NAMES = { classic: 'Classic', chase: 'Chase', star: 'Stars', pointer: 'Finger', bulbs: 'Bulbs' };
 function applyLayout(on) {
   document.querySelectorAll('.arrows').forEach(row => {
@@ -447,6 +461,7 @@ function paintArrows(style) {
       ? `<g transform="scale(-1,1) translate(-100,0)">${inner}</g>`
       : inner;
     svg.setAttribute('class', `cue-arrow ${dir} style-${s}`);
+    svg.setAttribute('viewBox', ARROW_BOXES[s] || '0 0 100 100');
   });
 }
 let arrowStyle = 'classic';
@@ -488,6 +503,50 @@ function applyBackground(bg, store) {
   }
 }
 
+/* ---------- Named layouts ---------- */
+function currentLayout() {
+  const layout = {};
+  document.querySelectorAll('.win').forEach(w => {
+    layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height,
+                     min: w.dataset.min === '1', clear: w.classList.contains('clear') };
+  });
+  return layout;
+}
+function readLayouts() {
+  try { return JSON.parse(localStorage.getItem('cue-console-layouts') || '{}'); } catch { return {}; }
+}
+function writeLayouts(all) {
+  try { localStorage.setItem('cue-console-layouts', JSON.stringify(all)); } catch {}
+}
+function fillLayoutList(selected) {
+  const sel = $('layoutPick');
+  if (!sel) return;
+  const all = readLayouts();
+  sel.innerHTML = '<option value="">—</option>' + Object.keys(all).sort()
+    .map(n => `<option value="${n}">${n}</option>`).join('');
+  if (selected) sel.value = selected;
+}
+function applyLayout2(layout) {
+  if (!layout) return;
+  $('dock').innerHTML = '';
+  document.querySelectorAll('.win').forEach(w => {
+    w.style.display = '';
+    w.dataset.min = '0';
+    w.classList.remove('clear');
+  });
+  for (const [id, box] of Object.entries(layout)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (box.left) el.style.left = box.left;
+    if (box.top) el.style.top = box.top;
+    if (box.width) el.style.width = box.width;
+    if (box.height) el.style.height = box.height;
+    if (box.clear) el.classList.add('clear');
+    if (box.min) minimize(el, true);
+  }
+  save();
+}
+
 /* ---------- Move, resize, minimize ---------- */
 let z = 10;
 function minimize(win, restoring) {
@@ -511,22 +570,40 @@ if (!popoutPanel) {
     const head = win.querySelector('header');
     const mini = win.querySelector('.mini');
     if (mini) mini.addEventListener('click', () => minimize(win));
-    head.addEventListener('pointerdown', e => {
-      if (e.target.closest('button')) return;
+    const startDrag = e => {
+      if (e.target.closest('button, select, input, label, a, textarea')) return;
+      if (e.button !== 0) return;
       const ws = $('workspace').getBoundingClientRect();
       const r = win.getBoundingClientRect();
       const ox = e.clientX - r.left, oy = e.clientY - r.top;
-      head.setPointerCapture(e.pointerId);
+      const sx = e.clientX, sy = e.clientY;
+      let moved = false;
       win.style.zIndex = ++z;
-      head.style.cursor = 'grabbing';
+      const target = e.currentTarget;
+      target.setPointerCapture(e.pointerId);
       const move = ev => {
-        win.style.left = Math.round(Math.max(0, Math.min(ev.clientX - ws.left - ox, ws.width - 60))) + 'px';
-        win.style.top = Math.round(Math.max(0, Math.min(ev.clientY - ws.top - oy, ws.height - 40))) + 'px';
+        if (!moved && Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 5) return;
+        moved = true;
+        win.dataset.dragged = '1';
+        head.style.cursor = 'grabbing';
+        // windows may hang off any edge; 40px stays on screen to grab
+        const x = Math.max(40 - r.width, Math.min(ev.clientX - ws.left - ox, ws.width - 40));
+        const y = Math.max(-r.height + 34, Math.min(ev.clientY - ws.top - oy, ws.height - 34));
+        win.style.left = Math.round(x) + 'px';
+        win.style.top = Math.round(y) + 'px';
       };
-      const up = () => { head.removeEventListener('pointermove', move); head.removeEventListener('pointerup', up); head.style.cursor = 'grab'; save(); };
-      head.addEventListener('pointermove', move);
-      head.addEventListener('pointerup', up);
-    });
+      const up = () => {
+        target.removeEventListener('pointermove', move);
+        target.removeEventListener('pointerup', up);
+        head.style.cursor = 'grab';
+        if (moved) { save(); setTimeout(() => { win.dataset.dragged = '0'; }, 0); }
+      };
+      target.addEventListener('pointermove', move);
+      target.addEventListener('pointerup', up);
+    };
+    head.addEventListener('pointerdown', startDrag);
+    win.querySelector('.body').addEventListener('pointerdown', startDrag);
+
     const grip = win.querySelector('.grip');
     if (grip) grip.addEventListener('pointerdown', e => {
       e.preventDefault();
@@ -952,6 +1029,26 @@ if (!popoutPanel) {
     publishBackground(null);
   });
 
+  $('layoutSave').addEventListener('click', () => {
+    const name = prompt('Name this layout (for example: Ballroom, Breakout, Stage left)');
+    if (!name) return;
+    const all = readLayouts();
+    all[name.trim()] = currentLayout();
+    writeLayouts(all);
+    fillLayoutList(name.trim());
+  });
+  $('layoutPick').addEventListener('change', e => {
+    const all = readLayouts();
+    if (all[e.target.value]) applyLayout2(all[e.target.value]);
+  });
+  $('layoutDelete').addEventListener('click', () => {
+    const sel = $('layoutPick');
+    if (!sel.value) return;
+    const all = readLayouts();
+    delete all[sel.value];
+    writeLayouts(all);
+    fillLayoutList('');
+  });
   $('resetLayout').addEventListener('click', () => {
     try {
       const raw = JSON.parse(localStorage.getItem('cue-console') || '{}');
@@ -1026,7 +1123,11 @@ if (!popoutPanel) {
     publish(true);
   });
   document.querySelectorAll('.cue-arrow').forEach(svg => {
-    svg.addEventListener('click', () => applyCue(svg.classList.contains('back') ? 'back' : 'next'));
+    svg.addEventListener('click', () => {
+      const win = svg.closest('.win');
+      if (win && win.dataset.dragged === '1') return;
+      applyCue(svg.classList.contains('back') ? 'back' : 'next');
+    });
   });
 }
 
@@ -1056,6 +1157,7 @@ if (!popoutPanel && 'hid' in navigator) {
 }
 
 loadSaved();
+fillLayoutList('');
 if ($('arrowStyle')) $('arrowStyle').value = arrowStyle;
 if ($('stacked')) $('stacked').checked = arrowStacked;
 try {

@@ -39,7 +39,7 @@ body.flashing #time{animation:zeroFlash 1s steps(1,end) infinite}
 .arrows.stacked .style-classic.back{margin-top:-28%}
 .arrows.stacked .style-chase.back{margin-top:-14%}
 .arrows.stacked .style-star.back,.arrows.stacked .style-pointer.back{margin-top:-4%}
-.arrows.stacked .cue-arrow.next{transform:translate(3%,-6%)}
+.arrows.stacked .cue-arrow.next{transform:translate(3%,-4%)}
 .arrows.stacked .cue-arrow.back{transform:translate(5%,0)}
 
 .cue-arrow polygon,.cue-arrow path,.cue-arrow circle{opacity:.4}
@@ -147,6 +147,7 @@ const ARROW_STYLES = {
   pointer: '<text class="shape" x="50" y="52" text-anchor="middle" dominant-baseline="central">\u{1F449}</text>',
   bulbs: '<g class="b1"><circle cx="8" cy="9.2" r="6.4"/><circle class="gloss" cx="6.2" cy="7.2" r="2.1"/><circle cx="8" cy="22.8" r="6.4"/><circle class="gloss" cx="6.2" cy="20.8" r="2.1"/><circle cx="8" cy="36.4" r="6.4"/><circle class="gloss" cx="6.2" cy="34.4" r="2.1"/><circle cx="8" cy="50.0" r="6.4"/><circle class="gloss" cx="6.2" cy="48.0" r="2.1"/><circle cx="8" cy="63.6" r="6.4"/><circle class="gloss" cx="6.2" cy="61.6" r="2.1"/><circle cx="8" cy="77.2" r="6.4"/><circle class="gloss" cx="6.2" cy="75.2" r="2.1"/><circle cx="8" cy="90.8" r="6.4"/><circle class="gloss" cx="6.2" cy="88.8" r="2.1"/></g><g class="b2"><circle cx="22" cy="16.0" r="6.4"/><circle class="gloss" cx="20.2" cy="14.0" r="2.1"/><circle cx="22" cy="29.6" r="6.4"/><circle class="gloss" cx="20.2" cy="27.6" r="2.1"/><circle cx="22" cy="43.2" r="6.4"/><circle class="gloss" cx="20.2" cy="41.2" r="2.1"/><circle cx="22" cy="56.8" r="6.4"/><circle class="gloss" cx="20.2" cy="54.8" r="2.1"/><circle cx="22" cy="70.4" r="6.4"/><circle class="gloss" cx="20.2" cy="68.4" r="2.1"/><circle cx="22" cy="84.0" r="6.4"/><circle class="gloss" cx="20.2" cy="82.0" r="2.1"/></g><g class="b3"><circle cx="36" cy="22.8" r="6.4"/><circle class="gloss" cx="34.2" cy="20.8" r="2.1"/><circle cx="36" cy="36.4" r="6.4"/><circle class="gloss" cx="34.2" cy="34.4" r="2.1"/><circle cx="36" cy="50.0" r="6.4"/><circle class="gloss" cx="34.2" cy="48.0" r="2.1"/><circle cx="36" cy="63.6" r="6.4"/><circle class="gloss" cx="34.2" cy="61.6" r="2.1"/><circle cx="36" cy="77.2" r="6.4"/><circle class="gloss" cx="34.2" cy="75.2" r="2.1"/></g><g class="b4"><circle cx="50" cy="29.6" r="6.4"/><circle class="gloss" cx="48.2" cy="27.6" r="2.1"/><circle cx="50" cy="43.2" r="6.4"/><circle class="gloss" cx="48.2" cy="41.2" r="2.1"/><circle cx="50" cy="56.8" r="6.4"/><circle class="gloss" cx="48.2" cy="54.8" r="2.1"/><circle cx="50" cy="70.4" r="6.4"/><circle class="gloss" cx="48.2" cy="68.4" r="2.1"/></g><g class="b5"><circle cx="64" cy="36.4" r="6.4"/><circle class="gloss" cx="62.2" cy="34.4" r="2.1"/><circle cx="64" cy="50.0" r="6.4"/><circle class="gloss" cx="62.2" cy="48.0" r="2.1"/><circle cx="64" cy="63.6" r="6.4"/><circle class="gloss" cx="62.2" cy="61.6" r="2.1"/></g><g class="b6"><circle cx="78" cy="43.2" r="6.4"/><circle class="gloss" cx="76.2" cy="41.2" r="2.1"/><circle cx="78" cy="56.8" r="6.4"/><circle class="gloss" cx="76.2" cy="54.8" r="2.1"/></g><g class="b7"><circle cx="92" cy="50.0" r="6.4"/><circle class="gloss" cx="90.2" cy="48.0" r="2.1"/></g>'
 };
+const ARROW_BOXES = { classic: '8 10 86 80', chase: '0 12 98 76', bulbs: '1 2 98 96', star: '4 4 92 90', pointer: '0 0 100 100' };
 const ARROW_NAMES = { classic: 'Classic', chase: 'Chase', star: 'Stars', pointer: 'Finger', bulbs: 'Bulbs' };
 function applyLayout(on) {
   document.querySelectorAll('.arrows').forEach(row => {
@@ -167,6 +168,7 @@ function paintArrows(style) {
       ? `<g transform="scale(-1,1) translate(-100,0)">${inner}</g>`
       : inner;
     svg.setAttribute('class', `cue-arrow ${dir} style-${s}`);
+    svg.setAttribute('viewBox', ARROW_BOXES[s] || '0 0 100 100');
   });
 }
 paintArrows('classic');
