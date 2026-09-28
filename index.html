@@ -744,7 +744,7 @@ function renderTimer() {
   if (stopAtZero && over) left = 0;
   el.textContent = fmtTime(left);
   el.className = 'time ' + (left <= 0 ? (over && !stopAtZero ? 'red over' : 'red') : left <= live.yellow ? 'amber' : 'green');
-  document.querySelectorAll('#win-timer .timer').forEach(t => t.classList.toggle('flashing', left <= 0 && (live.blink || flashAtZero)));
+  document.querySelectorAll('#win-timer .timer').forEach(t => t.classList.toggle('flashing', left <= 0 && flashAtZero));
   const tags = (live.blink ? ' · BLINK' : '') + (live.beep ? ' · BEEP' : '');
   if (src) src.textContent = `Program ${live.program} · set ${fmtTime(live.total)} · yellow at ${fmtTime(live.yellow)} · ${live.running ? 'running' : 'stopped'}${tags}`;
   document.querySelectorAll('.prog').forEach(btn => {
@@ -846,6 +846,7 @@ function onTimerReport(role, bytes) {
   if (role.buf.length > 4096) role.buf = [];
 }
 let lastPrograms = null;
+let lastBlink = null;
 let lastTickAt = 0;
 let runningNow = false;
 
@@ -883,6 +884,12 @@ function applyLive(b) {
   const p = programs[pick] || programs[0];
   state.programs = programs;
   const wasBeeping = state.live && state.live.beep;
+  if (lastBlink !== null && blink !== lastBlink) {
+    flashAtZero = blink;
+    if ($('flashZero')) $('flashZero').checked = flashAtZero;
+    save();
+  }
+  lastBlink = blink;
   state.live = { total: p.total, yellow: p.yellow, elapsed: p.elapsed,
     running: runningNow && pick === selected, program: pick + 1, blink, beep };
   if (beep && !wasBeeping) playClick();

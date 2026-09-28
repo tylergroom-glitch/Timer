@@ -182,7 +182,7 @@ function paint(d) {
     if (d.stopAtZero && over) left = 0;
     $('time').textContent = fmt(left);
     $('time').className = left <= 0 ? (over && !d.stopAtZero ? 'red over' : 'red') : left <= live.yellow ? 'amber' : 'green';
-    document.body.classList.toggle('flashing', left <= 0 && (!!live.blink || !!d.flashAtZero));
+    document.body.classList.toggle('flashing', left <= 0 && !!d.flashAtZero);
     $('sub').textContent = `${live.program ? 'Program ' + live.program + ' · ' : ''}Set ${fmt(live.total)} · ${live.running ? 'running' : 'stopped'}${live.blink ? ' · BLINK' : ''}${live.beep ? ' · BEEP' : ''}`;
   } else {
     $('time').textContent = '--:--';
