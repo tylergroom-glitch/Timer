@@ -848,6 +848,7 @@ function onTimerReport(role, bytes) {
 }
 let lastPrograms = null;
 let lastBlink = null;
+let lastFlagsSeen = -1;
 let lastTickAt = 0;
 let runningNow = false;
 
@@ -870,6 +871,17 @@ function applyLive(b) {
   const beep = !!((flags | anyFlags) & 4);
   liveSeen = Date.now();
 
+  if (blink !== lastBlink) {
+    lastBlink = blink;
+    flashAtZero = blink;
+    if ($('flashZero')) $('flashZero').checked = flashAtZero;
+    save();
+  }
+  if (anyFlags !== lastFlagsSeen) {
+    lastFlagsSeen = anyFlags;
+    if (state.live) { state.live.flags = allFlags.join('/'); renderTimer(); }
+  }
+
   const key = programs.map(p => `${p.total},${p.yellow},${p.elapsed}`).join('|') + '|' + selected + '|' + allFlags.join(',');
   const same = key === lastKey;
   if (!same && candidate !== key) { candidate = key; return; }
@@ -887,12 +899,6 @@ function applyLive(b) {
   const p = programs[pick] || programs[0];
   state.programs = programs;
   const wasBeeping = state.live && state.live.beep;
-  if (blink !== lastBlink) {
-    lastBlink = blink;
-    flashAtZero = blink;
-    if ($('flashZero')) $('flashZero').checked = flashAtZero;
-    save();
-  }
   state.live = { total: p.total, yellow: p.yellow, elapsed: p.elapsed,
     running: runningNow && pick === selected, program: pick + 1, blink, beep, flags: allFlags.join('/') };
   if (beep && !wasBeeping) playClick();
