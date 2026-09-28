@@ -54,8 +54,11 @@ a{color:var(--blue)}
 .grip{position:absolute;right:2px;bottom:2px;width:18px;height:18px;cursor:nwse-resize;
   background:linear-gradient(135deg,transparent 50%,var(--line) 50%,var(--line) 60%,transparent 60%,transparent 72%,var(--line) 72%,var(--line) 82%,transparent 82%)}
 
-#dock{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;padding:8px 12px;flex-wrap:wrap;pointer-events:none}
-#dock button{pointer-events:auto;background:var(--head)}
+#dock{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;padding:8px 12px;flex-wrap:wrap;
+  z-index:9999;pointer-events:none;align-items:center}
+#dock:not(:empty){background:rgba(16,21,28,.92);border-top:1px solid var(--line)}
+#dock button{pointer-events:auto;background:var(--head);border-color:var(--line)}
+#dock button::before{content:'\2197';margin-right:6px;color:var(--dim)}
 
 .timer{display:flex;flex-direction:column;height:100%;justify-content:center;border-radius:8px}
 .timer.flashing .time{animation:zeroFlash 1s steps(1,end) infinite}
@@ -70,6 +73,7 @@ a{color:var(--blue)}
 .prog{padding:3px 9px;font-size:12px;opacity:.75}
 .prog.on{background:#1F4E8C;border-color:#2B63AD;opacity:1}
 .prog.live{outline:1px solid var(--green)}
+body.hide-details #tSource,body.hide-details #progRow{display:none}
 .win.clear #progRow{opacity:0;transition:opacity .12s ease}
 .win.clear:hover #progRow{opacity:1}
 
@@ -202,6 +206,7 @@ body.popout .win header{display:none}
   <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="sound"> Sound</label>
   <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="stopZero"> Stop at 0:00</label>
   <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="flashZero"> Flash at 0:00</label>
+  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="showDetails"> Clock details</label>
   <button id="resetLayout">Reset layout</button>
 </div>
 
@@ -387,6 +392,7 @@ function loadSaved() {
     if (typeof saved.stopAtZero === 'boolean') stopAtZero = saved.stopAtZero;
     if (saved.selectedProgram !== undefined) selectedProgram = saved.selectedProgram;
     if (typeof saved.flashAtZero === 'boolean') flashAtZero = saved.flashAtZero;
+    if (typeof saved.showDetails === 'boolean') showDetails = saved.showDetails;
     if (typeof saved.clock24 === 'boolean') clock24 = saved.clock24;
     if (typeof saved.clockSeconds === 'boolean') clockSeconds = saved.clockSeconds;
     if (saved.camUrl && $('camUrl')) $('camUrl').value = saved.camUrl;
@@ -404,7 +410,7 @@ function save() {
       layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height,
                        min: w.dataset.min === '1', clear: w.classList.contains('clear') };
     });
-    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, clock24, clockSeconds, selectedProgram,
+    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, showDetails, clock24, clockSeconds, selectedProgram,
       camUrl: $('camUrl') ? $('camUrl').value.trim() : '', camMode: $('camMode') ? $('camMode').value : 'snapshot',
       dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey }));
   } catch {}
@@ -447,6 +453,7 @@ let arrowStyle = 'classic';
 let arrowStacked = false;
 let stopAtZero = false;
 let flashAtZero = false;
+let showDetails = false;
 
 /* ---------- Background ---------- */
 function readBg() {
@@ -556,8 +563,9 @@ function renderTimer() {
   if (stopAtZero && over) left = 0;
   el.textContent = fmtTime(left);
   el.className = 'time ' + (left <= 0 ? (over && !stopAtZero ? 'red over' : 'red') : left <= live.yellow ? 'amber' : 'green');
-  document.querySelectorAll('#win-timer .timer').forEach(t => t.classList.toggle('flashing', flashAtZero && left <= 0));
-  if (src) src.textContent = `Program ${live.program} · set ${fmtTime(live.total)} · yellow at ${fmtTime(live.yellow)} · ${live.running ? 'running' : 'stopped'}`;
+  document.querySelectorAll('#win-timer .timer').forEach(t => t.classList.toggle('flashing', left <= 0 && (live.blink || flashAtZero)));
+  const tags = (live.blink ? ' · BLINK' : '') + (live.beep ? ' · BEEP' : '');
+  if (src) src.textContent = `Program ${live.program} · set ${fmtTime(live.total)} · yellow at ${fmtTime(live.yellow)} · ${live.running ? 'running' : 'stopped'}${tags}`;
   document.querySelectorAll('.prog').forEach(btn => {
     btn.classList.toggle('on', btn.dataset.prog === String(selectedProgram));
     btn.classList.toggle('live', btn.dataset.prog === String(autoProgram));
@@ -657,8 +665,10 @@ function onTimerReport(role, bytes) {
   if (role.buf.length > 4096) role.buf = [];
 }
 let lastPrograms = null;
+let lastTickAt = 0;
+let runningNow = false;
+
 function applyLive(b) {
-  const running = b[6] === 1;
   const programs = [];
   for (let k = 0; k < 4; k++) {
     const o = 9 + 11 * k;
@@ -669,28 +679,45 @@ function applyLive(b) {
     });
   }
   if (programs.some(p => p.total > 86400 || p.elapsed > 86400)) return;
+  const selected = b[5] >= 0 && b[5] <= 3 ? b[5] : 0;
+  const flags = b[17] || 0;
+  const blink = !!(flags & 2);
+  const beep = !!(flags & 4);
   liveSeen = Date.now();
 
-  const key = programs.map(p => `${p.total},${p.yellow},${p.elapsed}`).join('|') + '|' + running;
+  const key = programs.map(p => `${p.total},${p.yellow},${p.elapsed}`).join('|') + '|' + selected + '|' + flags;
   const same = key === lastKey;
   if (!same && candidate !== key) { candidate = key; return; }
   candidate = key;
 
-  // whichever block's clock is moving is the program in use
-  if (lastPrograms) {
-    for (let k = 0; k < 4; k++) {
-      if (programs[k].elapsed !== lastPrograms[k].elapsed) autoProgram = k;
-    }
-  }
+  // the timer counts up while it runs, so a moving clock means running
+  if (lastPrograms && programs[selected].elapsed !== lastPrograms[selected].elapsed) lastTickAt = Date.now();
+  runningNow = Date.now() - lastTickAt < 2500;
+
+  autoProgram = selected;
   lastPrograms = programs;
   lastKey = key;
 
   const pick = selectedProgram === 'auto' ? autoProgram : selectedProgram;
   const p = programs[pick] || programs[0];
   state.programs = programs;
-  state.live = { total: p.total, yellow: p.yellow, elapsed: p.elapsed, running, program: pick + 1 };
+  const wasBeeping = state.live && state.live.beep;
+  state.live = { total: p.total, yellow: p.yellow, elapsed: p.elapsed,
+    running: runningNow && pick === selected, program: pick + 1, blink, beep };
+  if (beep && !wasBeeping) playClick();
   if (!same) { renderTimer(); broadcast(); publish(); }
 }
+
+// keep the running flag honest when the clock stops changing
+setInterval(() => {
+  if (!state.live) return;
+  const r = Date.now() - lastTickAt < 2500;
+  if (r !== state.live.running) {
+    state.live.running = r;
+    renderTimer(); broadcast(); publish();
+  }
+}, 1000);
+
 setInterval(() => {
   if (state.live && Date.now() - liveSeen > 5000) { state.live = null; state.timerConnected = false; render(); broadcast(); publish(true); }
 }, 1000);
@@ -962,6 +989,11 @@ if (!popoutPanel) {
     renderClock();
     save();
   });
+  $('showDetails').addEventListener('change', e => {
+    showDetails = e.target.checked;
+    document.body.classList.toggle('hide-details', !showDetails);
+    save();
+  });
   $('flashZero').addEventListener('change', e => {
     flashAtZero = e.target.checked;
     renderTimer();
@@ -1033,6 +1065,8 @@ try {
 if ($('sound')) $('sound').checked = soundOn;
 if ($('stopZero')) $('stopZero').checked = stopAtZero;
 if ($('flashZero')) $('flashZero').checked = flashAtZero;
+if ($('showDetails')) $('showDetails').checked = showDetails;
+document.body.classList.toggle('hide-details', !showDetails);
 if ($('todFormat')) $('todFormat').textContent = clock24 ? '12 hour' : '24 hour';
 if ($('todSeconds')) $('todSeconds').textContent = clockSeconds ? 'Hide seconds' : 'Show seconds';
 renderClock();
