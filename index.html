@@ -864,11 +864,12 @@ function applyLive(b) {
   }
   if (programs.some(p => p.total > 86400 || p.elapsed > 86400)) return;
   const selected = b[5] >= 0 && b[5] <= 3 ? b[5] : 0;
-  const allFlags = [0, 1, 2, 3].map(k => b[9 + 11 * k + 8] || 0);
+  // flags live one block ahead of the times: P1 at byte 6, P2 at 17, P3 at 28, P4 at 39
+  const allFlags = [0, 1, 2, 3].map(k => b[6 + 11 * k] || 0);
   const flags = allFlags[selected] || 0;
   const anyFlags = allFlags.reduce((a, v) => a | v, 0);
-  const blink = !!((flags | anyFlags) & 2);
-  const beep = !!((flags | anyFlags) & 4);
+  const blink = !!(flags & 2);
+  const beep = !!(flags & 4);
   liveSeen = Date.now();
 
   if (blink !== lastBlink) {
