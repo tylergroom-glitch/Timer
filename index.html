@@ -745,8 +745,7 @@ function renderTimer() {
   el.textContent = fmtTime(left);
   el.className = 'time ' + (left <= 0 ? (over && !stopAtZero ? 'red over' : 'red') : left <= live.yellow ? 'amber' : 'green');
   document.querySelectorAll('#win-timer .timer').forEach(t => t.classList.toggle('flashing', left <= 0 && flashAtZero));
-  const tags = (live.blink ? ' · BLINK' : '') + (live.beep ? ' · BEEP' : '') +
-    (live.flags !== undefined ? ` · flags ${live.flags}` : '');
+  const tags = (live.blink ? ' · BLINK' : '') + (live.beep ? ' · BEEP' : '');
   if (src) src.textContent = `Program ${live.program} · set ${fmtTime(live.total)} · yellow at ${fmtTime(live.yellow)} · ${live.running ? 'running' : 'stopped'}${tags}`;
   document.querySelectorAll('.prog').forEach(btn => {
     btn.classList.toggle('on', btn.dataset.prog === String(selectedProgram));
@@ -880,7 +879,7 @@ function applyLive(b) {
   }
   if (anyFlags !== lastFlagsSeen) {
     lastFlagsSeen = anyFlags;
-    if (state.live) { state.live.flags = allFlags.join('/'); renderTimer(); }
+    if (state.live) renderTimer();
   }
 
   const key = programs.map(p => `${p.total},${p.yellow},${p.elapsed}`).join('|') + '|' + selected + '|' + allFlags.join(',');
@@ -901,7 +900,7 @@ function applyLive(b) {
   state.programs = programs;
   const wasBeeping = state.live && state.live.beep;
   state.live = { total: p.total, yellow: p.yellow, elapsed: p.elapsed,
-    running: runningNow && pick === selected, program: pick + 1, blink, beep, flags: allFlags.join('/') };
+    running: runningNow && pick === selected, program: pick + 1, blink, beep };
   if (beep && !wasBeeping) playClick();
   if (!same) { renderTimer(); broadcast(); publish(); }
 }
