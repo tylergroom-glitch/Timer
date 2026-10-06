@@ -352,6 +352,12 @@ body.popout .win header{display:none}
     <div class="grip"></div>
   </section>
 
+  <section class="win" id="win-debug" style="left:360px;top:620px;width:420px;height:220px">
+    <header><span class="name">Dongles</span><button class="mini" title="Minimize">&minus;</button></header>
+    <div class="body"><div id="debug" style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.7">No dongles connected.</div></div>
+    <div class="grip"></div>
+  </section>
+
   <div id="dock"></div>
 </div>
 
@@ -933,6 +939,9 @@ async function attach(d) {
 
   d.addEventListener('inputreport', e => {
     const bytes = new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength);
+    role.count = (role.count || 0) + 1;
+    role.last = Array.from(bytes.slice(0, 8), x => x.toString(16).padStart(2, '0')).join(' ');
+    role.lastAt = Date.now();
     // a cue press identifies itself instantly, whatever we thought before
     if (bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f) {
       if (role.kind !== 'cue') { role.kind = 'cue'; state.connected = true; render(); broadcast(); }
@@ -976,6 +985,19 @@ async function sendMode(d, mode) {
   cmd[0] = 0x8d; cmd[1] = mode;
   try { await d.sendReport(0, cmd); return true; } catch { return false; }
 }
+
+/* ---------- Dongle diagnostics ---------- */
+setInterval(() => {
+  const box = $('debug');
+  if (!box) return;
+  if (!roles.length) { box.textContent = 'No dongles connected.'; return; }
+  box.innerHTML = roles.map((r, i) => {
+    const age = r.lastAt ? Math.round((Date.now() - r.lastAt) / 1000) + 's ago' : 'never';
+    return `<div>#${i + 1} id ${r.device.productId.toString(16)} · role ${r.kind || 'unknown'} · probes ${r.probes}<br>` +
+      `&nbsp;&nbsp;reports ${r.count || 0} (${age})<br>` +
+      `&nbsp;&nbsp;last: ${r.last || '—'}</div>`;
+  }).join('');
+}, 500);
 
 /* ---------- Remote sharing ---------- */
 function dbBase() {
