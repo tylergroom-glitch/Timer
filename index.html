@@ -925,28 +925,46 @@ async function attach(d) {
   try { if (!d.opened) await d.open(); } catch { return false; }
   if (attached.includes(d)) return true;
   attached.push(d);
-  const role = { device: d, kind: null };
+  const role = { device: d, kind: null, probes: 0, lastSeen: 0 };
   roles.push(role);
+
   d.addEventListener('inputreport', e => {
     const bytes = new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength);
-    if (role.kind === 'cue') return onReport(bytes);
-    if (role.kind === 'timer') return onTimerReport(role, bytes);
+    // a cue press identifies itself instantly, whatever we thought before
     if (bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f) {
-      role.kind = 'cue'; state.connected = true; render(); return onReport(bytes);
+      if (role.kind !== 'cue') { role.kind = 'cue'; state.connected = true; render(); broadcast(); }
+      role.lastSeen = Date.now();
+      return onReport(bytes);
     }
+    if (role.kind === 'cue') return;
     onTimerReport(role, bytes);
   });
-  await sendMode(d, 0x00);
-  setTimeout(async () => {
-    if (role.kind) return;
-    await sendMode(d, 0x01);
-    role.kind = 'cue';
-    state.connected = true;
-    render(); broadcast();
-  }, 2500);
-  render(); broadcast();
+
+  probe(role);
+  render();
+  broadcast();
   return true;
 }
+
+// ask for timer mode first; if no timer data turns up, switch it to cue mode
+async function probe(role) {
+  role.probes++;
+  await sendMode(role.device, 0x00);
+  setTimeout(async () => {
+    if (role.kind === 'timer') return;
+    await sendMode(role.device, 0x01);
+    if (!role.kind) { role.kind = 'cue'; state.connected = true; render(); broadcast(); }
+  }, 2000);
+}
+
+// a quiet "cue" dongle with no timer connected gets retried as a timer
+setInterval(() => {
+  if (popoutPanel) return;
+  if (roles.some(r => r.kind === 'timer')) return;
+  roles.filter(r => r.kind === 'cue' && Date.now() - (r.lastSeen || 0) > 20000 && r.probes < 20)
+    .forEach(r => { r.kind = null; probe(r); });
+}, 15000);
+
 async function sendMode(d, mode) {
   const cmd = new Uint8Array(64);
   cmd[0] = 0x8d; cmd[1] = mode;
@@ -1256,10 +1274,25 @@ if (!popoutPanel && 'hid' in navigator) {
     let list = [];
     try { list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID, productId: PID }] }); } catch {}
     for (const d of list) await attach(d);
+    const granted = await navigator.hid.getDevices();
+    for (const d of granted.filter(x => x.vendorId === VID && x.productId === PID)) await attach(d);
+    updateConnectLabel();
   });
+
+  function updateConnectLabel() {
+    const btn = $('connect');
+    if (!btn) return;
+    btn.textContent = attached.length === 0 ? 'Connect a dongle'
+      : attached.length === 1 ? 'Connect the other dongle'
+      : 'Dongles connected';
+  }
+  setInterval(updateConnectLabel, 2000);
   navigator.hid.getDevices().then(async devices => {
     for (const d of devices.filter(x => x.vendorId === VID && x.productId === PID)) await attach(d);
   }).catch(() => {});
+  navigator.hid.addEventListener('connect', async e => {
+    if (e.device.vendorId === VID && e.device.productId === PID) await attach(e.device);
+  });
   navigator.hid.addEventListener('disconnect', e => {
     const i = attached.indexOf(e.device);
     if (i >= 0) attached.splice(i, 1);
