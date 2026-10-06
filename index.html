@@ -352,7 +352,7 @@ body.popout .win header{display:none}
     <div class="grip"></div>
   </section>
 
-  <section class="win" id="win-debug" style="left:360px;top:620px;width:420px;height:220px">
+  <section class="win" id="win-debug" style="left:40px;top:120px;width:430px;height:240px">
     <header><span class="name">Dongles</span><button class="mini" title="Minimize">&minus;</button></header>
     <div class="body"><div id="debug" style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.7">No dongles connected.</div></div>
     <div class="grip"></div>
@@ -1350,6 +1350,19 @@ if (!popoutPanel && 'hid' in navigator) {
 }
 
 loadSaved();
+// pull anything that would sit off-screen back into view
+(function () {
+  const ws = document.getElementById('workspace');
+  if (!ws) return;
+  const h = ws.clientHeight, w = ws.clientWidth;
+  document.querySelectorAll('.win').forEach(el => {
+    if (el.dataset.min === '1') return;
+    const top = parseFloat(el.style.top) || 0;
+    const left = parseFloat(el.style.left) || 0;
+    if (top > h - 40) el.style.top = Math.max(10, h - 120) + 'px';
+    if (left > w - 60) el.style.left = Math.max(10, w - 200) + 'px';
+  });
+})();
 fillLayoutList('');
 if ($('arrowStyle')) $('arrowStyle').value = arrowStyle;
 if ($('stacked')) $('stacked').checked = arrowStacked;
