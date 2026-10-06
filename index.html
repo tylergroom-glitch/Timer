@@ -942,6 +942,7 @@ async function attach(d) {
     role.count = (role.count || 0) + 1;
     role.last = Array.from(bytes.slice(0, 8), x => x.toString(16).padStart(2, '0')).join(' ');
     role.lastAt = Date.now();
+    if (bytes.some(x => x !== 0)) role.sawData = Date.now();
     // a cue press identifies itself instantly, whatever we thought before
     if (bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f) {
       if (role.kind !== 'cue') { role.kind = 'cue'; state.connected = true; render(); broadcast(); }
@@ -965,11 +966,13 @@ function probe(role) {
   const tick = async () => {
     if (role.kind) { clearInterval(role.probeTimer); role.probeTimer = null; return; }
     role.probes++;
-    await sendMode(role.device, askTimerMode ? 0x00 : 0x01);
+    // busy with non-zero traffic but no timer packets: it's a timer stuck in cue mode
+    const chattering = role.sawData && Date.now() - role.sawData < 4000;
+    await sendMode(role.device, chattering ? 0x00 : (askTimerMode ? 0x00 : 0x01));
     askTimerMode = !askTimerMode;
   };
   tick();
-  role.probeTimer = setInterval(tick, 5000);
+  role.probeTimer = setInterval(tick, 4000);
 }
 
 // if no timer is connected, hunt again on any dongle that has gone quiet
