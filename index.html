@@ -968,7 +968,7 @@ function probe(role) {
     role.probes++;
     // busy with non-zero traffic but no timer packets: it's a timer stuck in cue mode
     const chattering = role.sawData && Date.now() - role.sawData < 4000;
-    await sendMode(role.device, chattering ? 0x00 : (askTimerMode ? 0x00 : 0x01));
+    await sendMode(role.device, chattering ? 0x00 : (askTimerMode ? 0x00 : 0x01), role);
     askTimerMode = !askTimerMode;
   };
   tick();
@@ -983,10 +983,17 @@ setInterval(() => {
     .forEach(r => { r.kind = null; probe(r); });
 }, 20000);
 
-async function sendMode(d, mode) {
+async function sendMode(d, mode, role) {
   const cmd = new Uint8Array(64);
   cmd[0] = 0x8d; cmd[1] = mode;
-  try { await d.sendReport(0, cmd); return true; } catch { return false; }
+  try {
+    await d.sendReport(0, cmd);
+    if (role) { role.sent = mode; role.sendErr = null; }
+    return true;
+  } catch (e) {
+    if (role) { role.sent = mode; role.sendErr = (e && e.name) || 'failed'; }
+    return false;
+  }
 }
 
 /* ---------- Dongle diagnostics ---------- */
@@ -996,8 +1003,10 @@ setInterval(() => {
   if (!roles.length) { box.textContent = 'No dongles connected.'; return; }
   box.innerHTML = roles.map((r, i) => {
     const age = r.lastAt ? Math.round((Date.now() - r.lastAt) / 1000) + 's ago' : 'never';
+    const sent = r.sent === undefined ? '—' : (r.sent === 0 ? '8D 00 (timer)' : '8D 01 (cue)');
     return `<div>#${i + 1} id ${r.device.productId.toString(16)} · role ${r.kind || 'unknown'} · probes ${r.probes}<br>` +
       `&nbsp;&nbsp;reports ${r.count || 0} (${age})<br>` +
+      `&nbsp;&nbsp;mode sent: ${sent}${r.sendErr ? ' · ERROR ' + r.sendErr : ' · ok'}<br>` +
       `&nbsp;&nbsp;last: ${r.last || '—'}</div>`;
   }).join('');
 }, 500);
