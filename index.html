@@ -961,27 +961,33 @@ async function attach(d) {
 // keep alternating modes until the dongle identifies itself: timer packets mean
 // a timer, a button press means a cue dongle
 function probe(role) {
-  if (role.probeTimer) return;
-  let askTimerMode = true;
-  const tick = async () => {
-    if (role.kind) { clearInterval(role.probeTimer); role.probeTimer = null; return; }
-    role.probes++;
-    // busy with non-zero traffic but no timer packets: it's a timer stuck in cue mode
-    const chattering = role.sawData && Date.now() - role.sawData < 4000;
-    await sendMode(role.device, chattering ? 0x00 : (askTimerMode ? 0x00 : 0x01), role);
-    askTimerMode = !askTimerMode;
-  };
-  tick();
-  role.probeTimer = setInterval(tick, 4000);
+  // ask for timer mode and leave it there; a timer answers within a second or two
+  sendMode(role.device, 0x00, role);
+  clearTimeout(role.probeTimer);
+  role.probeTimer = setTimeout(() => {
+    if (role.kind) return;
+    // nothing timer-shaped arrived, so treat it as the cue dongle
+    sendMode(role.device, 0x01, role);
+    role.kind = 'cue';
+    state.connected = true;
+    render();
+    broadcast();
+  }, 3000);
 }
 
-// if no timer is connected, hunt again on any dongle that has gone quiet
-setInterval(() => {
-  if (popoutPanel) return;
-  if (roles.some(r => r.kind === 'timer')) return;
-  roles.filter(r => r.kind === 'cue' && Date.now() - (r.lastSeen || 0) > 30000 && !r.probeTimer)
-    .forEach(r => { r.kind = null; probe(r); });
-}, 20000);
+function setRole(role, kind) {
+  clearTimeout(role.probeTimer);
+  role.kind = kind;
+  role.buf = [];
+  if (kind === 'timer') {
+    sendMode(role.device, 0x00, role);
+  } else {
+    sendMode(role.device, 0x01, role);
+    state.connected = true;
+  }
+  render();
+  broadcast();
+}
 
 async function sendMode(d, mode, role) {
   const cmd = new Uint8Array(64);
@@ -1004,12 +1010,17 @@ setInterval(() => {
   box.innerHTML = roles.map((r, i) => {
     const age = r.lastAt ? Math.round((Date.now() - r.lastAt) / 1000) + 's ago' : 'never';
     const sent = r.sent === undefined ? '—' : (r.sent === 0 ? '8D 00 (timer)' : '8D 01 (cue)');
-    return `<div>#${i + 1} id ${r.device.productId.toString(16)} · role ${r.kind || 'unknown'} · probes ${r.probes}<br>` +
-      `&nbsp;&nbsp;reports ${r.count || 0} (${age})<br>` +
+    return `<div>#${i + 1} role ${r.kind || 'unknown'} · reports ${r.count || 0} (${age})<br>` +
       `&nbsp;&nbsp;mode sent: ${sent}${r.sendErr ? ' · ERROR ' + r.sendErr : ' · ok'}<br>` +
-      `&nbsp;&nbsp;last: ${r.last || '—'}</div>`;
+      `&nbsp;&nbsp;last: ${r.last || '—'}<br>` +
+      `&nbsp;&nbsp;<button class="setrole" data-i="${i}" data-k="timer">Use as timer</button> ` +
+      `<button class="setrole" data-i="${i}" data-k="cue">Use as cue</button></div>`;
   }).join('');
-}, 500);
+  box.querySelectorAll('.setrole').forEach(btn => btn.addEventListener('click', () => {
+    const r = roles[Number(btn.dataset.i)];
+    if (r) setRole(r, btn.dataset.k);
+  }));
+}, 1500);
 
 /* ---------- Remote sharing ---------- */
 function dbBase() {
