@@ -357,6 +357,9 @@ body.popout .win header{display:none}
 
 <script>
 const VID = 0x0483, PID = 0x101a;
+// DSAN dongles have shown up under more than one product id
+const isDsan = d => d.vendorId === VID && (d.productId === 0x101a || d.productId === 0x2080 ||
+  /dsan|videoclock/i.test((d.productName || '') + (d.manufacturerName || '')));
 const DEBOUNCE_MS = 250;
 const params = new URLSearchParams(location.search);
 const popoutPanel = params.get('panel');
@@ -1272,10 +1275,10 @@ if (!popoutPanel) {
 if (!popoutPanel && 'hid' in navigator) {
   $('connect').addEventListener('click', async () => {
     let list = [];
-    try { list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID, productId: PID }] }); } catch {}
+    try { list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID }] }); } catch {}
     for (const d of list) await attach(d);
     const granted = await navigator.hid.getDevices();
-    for (const d of granted.filter(x => x.vendorId === VID && x.productId === PID)) await attach(d);
+    for (const d of granted.filter(isDsan)) await attach(d);
     updateConnectLabel();
   });
 
@@ -1288,10 +1291,10 @@ if (!popoutPanel && 'hid' in navigator) {
   }
   setInterval(updateConnectLabel, 2000);
   navigator.hid.getDevices().then(async devices => {
-    for (const d of devices.filter(x => x.vendorId === VID && x.productId === PID)) await attach(d);
+    for (const d of devices.filter(isDsan)) await attach(d);
   }).catch(() => {});
   navigator.hid.addEventListener('connect', async e => {
-    if (e.device.vendorId === VID && e.device.productId === PID) await attach(e.device);
+    if (isDsan(e.device)) await attach(e.device);
   });
   navigator.hid.addEventListener('disconnect', e => {
     const i = attached.indexOf(e.device);
