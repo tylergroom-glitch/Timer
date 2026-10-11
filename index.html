@@ -170,7 +170,21 @@ body.hide-details #tSource,body.hide-details #progRow{display:none}
 .stat span:last-child{font-variant-numeric:tabular-nums}
 #remote input{width:100%;margin:6px 0}
 #remote p{margin:6px 0;font-size:13px;color:var(--dim)}
+#remote label{font-size:13px;color:var(--dim);display:flex;align-items:center;gap:5px;cursor:pointer}
 #link{word-break:break-all;font-size:13px}
+.msgshow{display:none;align-items:center;justify-content:center;text-align:center;font-weight:500;
+  line-height:1.15;color:var(--amber);font-size:min(30cqh,13cqw);padding:4px}
+.msgshow.on{display:flex;flex:1}
+body.msg-live #msgEdit{opacity:.55}
+.rospace{font-size:15px;margin-bottom:8px}
+.rospace b{font-variant-numeric:tabular-nums}
+#rosList{font-size:13px}
+#rosList div{display:grid;grid-template-columns:1fr 64px 64px 54px;gap:6px;padding:3px 0;border-bottom:1px solid #222A35;align-items:center}
+#rosList .now{color:var(--green);font-weight:500}
+#rosList .done{color:var(--dim)}
+#rosList button{padding:1px 6px;font-size:11px}
+body.locked .grip,body.locked #bar .al,body.locked #msgEdit,body.locked #rosBody .row{display:none}
+body.locked .win header button.mini,body.locked .win header button.clearbg{display:none}
 #camBody{display:flex;flex-direction:column;gap:8px;padding:10px}
 #camView{flex:1;min-height:0;display:none;background:#000;border-radius:6px;overflow:hidden}
 #camView.on{display:block}
@@ -234,6 +248,8 @@ body.popout .win header{display:none}
   <button id="layoutSave">Save as…</button>
   <button id="layoutDelete">Delete</button>
   <button id="resetLayout">Reset layout</button>
+  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="lockUi"> Lock</label>
+  <span class="pill"><span class="dot" id="dotNet"></span><span id="statusNet">Link: off</span></span>
 </div>
 
 <div id="workspace">
@@ -295,11 +311,19 @@ body.popout .win header{display:none}
   <section class="win" id="win-remote" style="left:1040px;top:20px;width:340px;height:300px">
     <header><span class="name">Remote link</span><button class="mini" title="Minimize">&minus;</button></header>
     <div class="body" id="remote">
-      <p>Firebase Realtime Database URL. Sharing runs automatically whenever this is set.</p>
-      <input id="dbUrl" type="url" placeholder="https://your-project-default-rtdb.firebaseio.com" spellcheck="false">
-      <div class="row" style="justify-content:flex-start">
+      <input id="dbUrl" type="url" placeholder="Firebase database URL" spellcheck="false">
+      <input id="showName" type="text" placeholder="Show name, e.g. ballroom-a" spellcheck="false">
+      <div class="row" style="justify-content:flex-start;gap:10px;flex-wrap:wrap;margin-top:4px">
+        <label><input type="checkbox" class="vopt" data-k="tod" checked> Time of day</label>
+        <label><input type="checkbox" class="vopt" data-k="timer" checked> Timer</label>
+        <label><input type="checkbox" class="vopt" data-k="arrows" checked> Arrows</label>
+        <label><input type="checkbox" class="vopt" data-k="slide"> Slide</label>
+        <label><input type="checkbox" class="vopt" data-k="extras" checked> Now / next</label>
+        <label><input type="checkbox" class="vopt" data-k="clear"> Transparent</label>
+      </div>
+      <div class="row" style="justify-content:flex-start;margin-top:8px">
         <button id="copyLink">Copy link</button>
-        <button id="newLink">New link</button>
+        <button id="openLink">Open</button>
       </div>
       <p id="shareState">Not sharing.</p>
       <div id="link"></div>
@@ -307,48 +331,46 @@ body.popout .win header{display:none}
     <div class="grip"></div>
   </section>
 
-  <section class="win" id="win-camera" style="left:1040px;top:340px;width:420px;height:320px">
-    <header><span class="name">Camera</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
-    <div class="body" id="camBody">
-      <div id="camView"></div>
-      <div id="camSetup">
-        <p style="margin:0 0 6px;font-size:13px;color:var(--dim)">Snapshot, HLS stream, or a share page.</p>
-        <input id="camUrl" type="url" placeholder="https://192.168.1.50/snap.jpeg" spellcheck="false" style="width:100%">
-        <div class="row" style="justify-content:flex-start;margin-top:8px">
-          <select id="camMode" style="background:#131920;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit">
-            <option value="snapshot">Snapshot</option>
-            <option value="hls">HLS stream</option>
-            <option value="page">Share page</option>
-          </select>
-          <button class="primary" id="camApply">Show</button>
-          <button id="camStop">Stop</button>
+  <section class="win" id="win-msg" style="left:40px;top:380px;width:420px;height:250px">
+    <header><span class="name">Message</span><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <div class="body" id="msgBody">
+      <div id="msgShow" class="msgshow"></div>
+      <div id="msgEdit">
+        <div class="row" style="justify-content:flex-start;gap:6px;flex-wrap:wrap">
+          <button class="quick">Wrap up</button>
+          <button class="quick">2 minutes</button>
+          <button class="quick">Time is up</button>
+          <button class="quick">Slow down</button>
+          <button class="quick">Repeat the question</button>
+          <button class="quick">Check your mic</button>
         </div>
-        <p id="camState" style="margin:8px 0 0;font-size:13px;color:var(--dim)"></p>
+        <div class="row" style="justify-content:flex-start;margin-top:8px">
+          <input id="msgText" type="text" placeholder="Type a message" style="flex:1">
+          <button class="primary" id="msgSend">Send</button>
+          <button id="msgClear">Clear</button>
+        </div>
       </div>
     </div>
     <div class="grip"></div>
   </section>
 
-  <section class="win" id="win-clock" style="left:700px;top:620px;width:340px;height:200px">
-    <header><span class="name">Time of day</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
-    <div class="body">
-      <div class="timer">
-        <div class="time green" id="tod">--:--</div>
-        <div class="sub"><button id="todFormat" style="padding:3px 9px;font-size:12px">24 hour</button> <button id="todSeconds" style="padding:3px 9px;font-size:12px">Show seconds</button></div>
+  <section class="win" id="win-ros" style="left:480px;top:380px;width:460px;height:300px">
+    <header><span class="name">Run of show</span><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <div class="body" id="rosBody">
+      <div id="rosPace" class="rospace">No schedule yet</div>
+      <div id="rosList"></div>
+      <div class="row" style="justify-content:flex-start;margin-top:8px">
+        <input id="rosName" type="text" placeholder="Segment name" style="flex:1">
+        <input id="rosMins" type="text" placeholder="min" style="width:64px">
+        <button id="rosAdd">Add</button>
+      </div>
+      <div class="row" style="justify-content:flex-start;margin-top:6px">
+        <button class="primary" id="rosStart">Start first</button>
+        <button id="rosNext">Next segment</button>
+        <button id="rosStop">Stop</button>
+        <button id="rosExport">Export report</button>
       </div>
     </div>
-    <div class="grip"></div>
-  </section>
-
-  <section class="win" id="win-next" style="left:20px;top:620px;width:320px;height:200px">
-    <header><span class="name">Next arrow</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
-    <div class="body"><div class="solo"><svg viewBox="0 0 100 100" role="img" aria-label="Next cue" class="cue-arrow next style-classic"></svg></div></div>
-    <div class="grip"></div>
-  </section>
-
-  <section class="win" id="win-back" style="left:360px;top:620px;width:320px;height:200px">
-    <header><span class="name">Back arrow</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
-    <div class="body"><div class="solo"><svg viewBox="0 0 100 100" role="img" aria-label="Back cue" class="cue-arrow back style-classic"></svg></div></div>
     <div class="grip"></div>
   </section>
 
@@ -366,7 +388,7 @@ const VID = 0x0483, PID = 0x101a;
 // DSAN dongles have shown up under more than one product id
 const isDsan = d => d.vendorId === VID && (d.productId === 0x101a || d.productId === 0x2080 ||
   /dsan|videoclock/i.test((d.productName || '') + (d.manufacturerName || '')));
-const DEBOUNCE_MS = 250;
+const DEBOUNCE_MS = 90;
 const params = new URLSearchParams(location.search);
 const popoutPanel = params.get('panel');
 const channel = new BroadcastChannel('tcg-cue-console');
@@ -380,6 +402,7 @@ const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(2, '0');
 const clockOf = ms => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
 function duration(ms) { if (ms == null) return '—'; const s = Math.round(ms / 1000); return s < 60 ? `${s}s` : `${Math.floor(s/60)}m ${pad(s%60)}s`; }
+function escapeHtml(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function fmtTime(sec) { const a = Math.abs(Math.round(sec)); return `${sec < 0 ? '+' : ''}${Math.floor(a/60)}:${pad(a%60)}`; }
 
 let showKey = null, sharing = false, lastPublish = 0, publishTimer = null;
@@ -390,7 +413,11 @@ if (popoutPanel) {
   document.querySelectorAll('.win').forEach(w => { if (w.id !== 'win-' + popoutPanel) w.remove(); });
   channel.addEventListener('message', e => {
     if (!e.data) return;
-    if (e.data.type === 'state') { Object.assign(state, e.data.state); render(); }
+    if (e.data.type === 'state') {
+      Object.assign(state, e.data.state);
+      if (typeof e.data.message === 'string') { message = e.data.message; renderMessage(); }
+      render();
+    }
     else if (e.data.type === 'cue') pulse(e.data.cue);
   });
   channel.postMessage({ type: 'hello' });
@@ -399,7 +426,7 @@ document.querySelectorAll('.pop').forEach(btn => btn.addEventListener('click', (
   const id = btn.closest('.win').id.replace('win-', '');
   window.open(`${location.pathname}?panel=${id}`, `cue-${id}`, 'width=640,height=460');
 }));
-function broadcast() { if (!popoutPanel) channel.postMessage({ type: 'state', state }); }
+function broadcast() { if (!popoutPanel) channel.postMessage({ type: 'state', state, message }); }
 channel.addEventListener('message', e => { if (!popoutPanel && e.data && e.data.type === 'hello') broadcast(); });
 if (!popoutPanel) setInterval(broadcast, 5000);
 
@@ -420,7 +447,11 @@ function loadSaved() {
       }
     }
     if (typeof saved.slide === 'number') state.slide = saved.slide;
-    if (saved.dbUrl && $('dbUrl')) $('dbUrl').value = saved.dbUrl;
+    if ($('dbUrl')) $('dbUrl').value = saved.dbUrl || DEFAULT_DB;
+    if (saved.showName && $('showName')) $('showName').value = saved.showName;
+    if (saved.viewerOpts) document.querySelectorAll('.vopt').forEach(c => {
+      if (saved.viewerOpts[c.dataset.k] !== undefined) c.checked = !!saved.viewerOpts[c.dataset.k];
+    });
     if (saved.arrowStyle) arrowStyle = saved.arrowStyle;
     if (typeof saved.arrowStacked === 'boolean') arrowStacked = saved.arrowStacked;
     if (typeof saved.soundOn === 'boolean') soundOn = saved.soundOn;
@@ -428,6 +459,9 @@ function loadSaved() {
     if (saved.selectedProgram !== undefined) selectedProgram = saved.selectedProgram;
     if (typeof saved.flashAtZero === 'boolean') flashAtZero = saved.flashAtZero;
     if (typeof saved.showDetails === 'boolean') showDetails = saved.showDetails;
+    if (typeof saved.message === 'string') message = saved.message;
+    if (saved.ros && Array.isArray(saved.ros.items)) ros = Object.assign({ items: [], current: -1, startedAt: null }, saved.ros, { startedAt: null, current: -1 });
+    if (typeof saved.locked === 'boolean') locked = saved.locked;
     if (typeof saved.clock24 === 'boolean') clock24 = saved.clock24;
     if (typeof saved.clockSeconds === 'boolean') clockSeconds = saved.clockSeconds;
     if (saved.camUrl && $('camUrl')) $('camUrl').value = saved.camUrl;
@@ -445,9 +479,10 @@ function save() {
       layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height,
                        min: w.dataset.min === '1', clear: w.classList.contains('clear') };
     });
-    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, showDetails, clock24, clockSeconds, selectedProgram,
+    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, showDetails, clock24, clockSeconds, selectedProgram, message, ros, locked,
       camUrl: $('camUrl') ? $('camUrl').value.trim() : '', camMode: $('camMode') ? $('camMode').value : 'snapshot',
-      dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey }));
+      dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey,
+      showName: $('showName') ? $('showName').value.trim() : '', viewerOpts: viewerOptions() }));
   } catch {}
 }
 
@@ -555,6 +590,7 @@ if (!popoutPanel) {
   });
 
   document.addEventListener('keydown', e => {
+    if (locked) return;
     if (!selection.length) return;
     if (e.target.closest('input, select, textarea')) return;
     if (e.key === 'Escape') { setSelection([]); return; }
@@ -684,6 +720,7 @@ if (!popoutPanel) {
     const mini = win.querySelector('.mini');
     if (mini) mini.addEventListener('click', () => minimize(win));
     const startDrag = e => {
+      if (locked) return;
       if (e.target.closest('button, select, input, label, a, textarea')) return;
       if (e.button !== 0) return;
       const ws = $('workspace').getBoundingClientRect();
@@ -719,6 +756,7 @@ if (!popoutPanel) {
 
     const grip = win.querySelector('.grip');
     if (grip) grip.addEventListener('pointerdown', e => {
+      if (locked) return;
       e.preventDefault();
       const r = win.getBoundingClientRect();
       const sx = e.clientX, sy = e.clientY;
@@ -951,7 +989,14 @@ async function attach(d) {
     role.count = (role.count || 0) + 1;
     role.last = Array.from(bytes.slice(0, 8), x => x.toString(16).padStart(2, '0')).join(' ');
     role.lastAt = Date.now();
-    if (bytes.some(x => x !== 0)) role.sawData = Date.now();
+    if (bytes.some(x => x !== 0)) {
+      role.sawData = Date.now();
+      // not a cue press, but not silent either: this is the timer in the wrong mode
+      if (role.kind === 'cue' && !(bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f)) {
+        role.junk = (role.junk || 0) + 1;
+        if (role.junk > 20) { role.junk = 0; role.kind = null; sendMode(role.device, 0x00, role); probe(role); }
+      }
+    }
     // a cue press identifies itself instantly, whatever we thought before
     if (bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f) {
       if (role.kind !== 'cue') { role.kind = 'cue'; state.connected = true; render(); broadcast(); }
@@ -967,20 +1012,27 @@ async function attach(d) {
   return true;
 }
 
-// keep alternating modes until the dongle identifies itself: timer packets mean
-// a timer, a button press means a cue dongle
+// Rule: a dongle sending real (non-zero) traffic is a timer, even if we can't parse it
+// yet. Only a dongle that sends nothing but zeros gets put into cue mode.
 function probe(role) {
-  // ask for timer mode and leave it there; a timer answers within a second or two
   sendMode(role.device, 0x00, role);
-  clearTimeout(role.probeTimer);
-  role.probeTimer = setTimeout(() => {
-    if (role.kind) return;
-    // nothing timer-shaped arrived, so treat it as the cue dongle
-    sendMode(role.device, 0x01, role);
-    role.kind = 'cue';
-    state.connected = true;
-    render();
-    broadcast();
+  clearInterval(role.probeTimer);
+  role.probeTimer = setInterval(() => {
+    if (role.kind === 'timer') { clearInterval(role.probeTimer); role.probeTimer = null; return; }
+    const busy = role.sawData && Date.now() - role.sawData < 5000;
+    if (busy) {
+      // real data but nothing parsed yet: keep it in timer mode and try again
+      if (role.sent !== 0x00) sendMode(role.device, 0x00, role);
+      return;
+    }
+    // silent: it's the cue dongle
+    if (role.kind !== 'cue') {
+      sendMode(role.device, 0x01, role);
+      role.kind = 'cue';
+      state.connected = true;
+      render();
+      broadcast();
+    }
   }, 3000);
 }
 
@@ -1011,6 +1063,93 @@ async function sendMode(d, mode, role) {
   }
 }
 
+
+/* ---------- Speaker messages ---------- */
+if (popoutPanel) { /* message mirrors the console */ }
+let message = '';
+function renderMessage() {
+  const el = $('msgShow');
+  if (el) {
+    el.textContent = message;
+    el.classList.toggle('on', !!message);
+  }
+  document.body.classList.toggle('msg-live', !!message);
+}
+function setMessage(text) {
+  message = (text || '').trim();
+  renderMessage();
+  if ($('msgText')) $('msgText').value = '';
+  save();
+  broadcast();
+  publish(true);
+}
+
+/* ---------- Run of show ---------- */
+let ros = { items: [], current: -1, startedAt: null };
+function rosTotalPlanned(upTo) {
+  return ros.items.slice(0, upTo).reduce((a, it) => a + (it.mins || 0) * 60, 0);
+}
+function rosActualSoFar() {
+  return ros.items.reduce((a, it) => a + (it.actual || 0), 0) +
+    (ros.current >= 0 && ros.startedAt ? (Date.now() - ros.startedAt) / 1000 : 0);
+}
+function renderRos() {
+  const list = $('rosList');
+  if (!list) return;
+  list.innerHTML = ros.items.length ? ros.items.map((it, i) => {
+    const cls = i === ros.current ? 'now' : (it.actual ? 'done' : '');
+    const actual = i === ros.current && ros.startedAt
+      ? fmtTime((Date.now() - ros.startedAt) / 1000)
+      : (it.actual ? fmtTime(it.actual) : '—');
+    return `<div class="${cls}"><span>${i + 1}. ${escapeHtml(it.name)}</span>` +
+      `<span>${it.mins} min</span><span>${actual}</span>` +
+      `<span><button data-up="${i}">&#8593;</button><button data-del="${i}">&times;</button></span></div>`;
+  }).join('') : '<div class="empty">Add segments below.</div>';
+
+  list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    ros.items.splice(Number(b.dataset.del), 1);
+    if (ros.current >= ros.items.length) ros.current = -1;
+    renderRos(); save(); publish(true);
+  }));
+  list.querySelectorAll('[data-up]').forEach(b => b.addEventListener('click', () => {
+    const i = Number(b.dataset.up);
+    if (i > 0) { const t = ros.items[i - 1]; ros.items[i - 1] = ros.items[i]; ros.items[i] = t; }
+    renderRos(); save(); publish(true);
+  }));
+
+  const pace = $('rosPace');
+  if (pace) {
+    if (ros.current < 0 || !ros.items.length) {
+      pace.textContent = ros.items.length ? 'Schedule ready. Press Start first.' : 'No schedule yet';
+    } else {
+      const planned = rosTotalPlanned(ros.current) + (ros.items[ros.current].mins || 0) * 60;
+      const diff = Math.round(rosActualSoFar() - rosTotalPlanned(ros.current + 1));
+      const word = diff > 0 ? 'behind' : 'ahead';
+      const next = ros.items[ros.current + 1];
+      pace.innerHTML = `Now: <b>${escapeHtml(ros.items[ros.current].name)}</b>` +
+        ` · next: ${next ? escapeHtml(next.name) : '—'}` +
+        ` · <b style="color:${Math.abs(diff) < 30 ? 'var(--green)' : (diff > 0 ? 'var(--red)' : 'var(--amber)')}">` +
+        `${fmtTime(Math.abs(diff))} ${Math.abs(diff) < 30 ? 'on time' : word}</b>`;
+    }
+  }
+}
+function rosGoto(index) {
+  if (ros.current >= 0 && ros.startedAt) {
+    ros.items[ros.current].actual = (ros.items[ros.current].actual || 0) + (Date.now() - ros.startedAt) / 1000;
+  }
+  ros.current = index;
+  ros.startedAt = index >= 0 ? Date.now() : null;
+  renderRos(); save(); broadcast(); publish(true);
+}
+setInterval(() => { if (ros.current >= 0) renderRos(); }, 1000);
+
+/* ---------- Lock ---------- */
+let locked = false;
+function applyLock() {
+  document.body.classList.toggle('locked', locked);
+  if ($('lockUi')) $('lockUi').checked = locked;
+}
+
 /* ---------- Dongle diagnostics ---------- */
 setInterval(() => {
   const box = $('debug');
@@ -1034,14 +1173,31 @@ setInterval(() => {
 }, 1500);
 
 /* ---------- Remote sharing ---------- */
+let netOk = null;
+function setNet(stateName) {
+  const dot = $('dotNet'), label = $('statusNet');
+  if (!dot || !label) return;
+  dot.classList.toggle('on', stateName === 'on');
+  dot.style.background = stateName === 'error' ? 'var(--red)' : (stateName === 'on' ? '' : '#46505C');
+  label.textContent = stateName === 'on' ? 'Link: live' : stateName === 'error' ? 'Link: offline' : 'Link: off';
+}
+const DEFAULT_DB = 'https://dsan-f12e2-default-rtdb.firebaseio.com';
+function viewerOptions() {
+  const opts = {};
+  document.querySelectorAll('.vopt').forEach(c => { opts[c.dataset.k] = c.checked; });
+  return opts;
+}
 function dbBase() {
   const el = $('dbUrl');
-  const raw = el ? (el.value || '').trim().replace(/\/+$/, '') : '';
+  const raw = (el ? (el.value || '').trim() : '').replace(/\/+$/, '') || DEFAULT_DB;
   return /^https?:\/\//.test(raw) ? raw : null;
 }
 function viewerLink() {
   const base = location.origin + location.pathname.replace(/index\.html$/, '');
-  return `${base}view.html?db=${encodeURIComponent(dbBase() || '')}&k=${showKey}`;
+  const o = viewerOptions();
+  const flags = ['tod', 'timer', 'arrows', 'slide', 'extras', 'clear']
+    .map(k => `${k}=${o[k] ? 1 : 0}`).join('&');
+  return `${base}view.html?db=${encodeURIComponent(dbBase() || '')}&k=${showKey}&${flags}`;
 }
 function refreshLink() {
   if (!dbBase()) {
@@ -1049,7 +1205,9 @@ function refreshLink() {
     $('shareState').textContent = 'Enter the database URL to start sharing.';
     return;
   }
-  if (!showKey) showKey = Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
+  const named = $('showName') ? $('showName').value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '') : '';
+  if (named) showKey = named;
+  else if (!showKey) showKey = Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
   sharing = true;
   $('link').innerHTML = `<a href="${viewerLink()}" target="_blank" rel="noopener">${viewerLink()}</a>`;
   save();
@@ -1064,6 +1222,12 @@ function publish(force) {
   }
   lastPublish = now;
   const payload = {
+    message,
+    ros: ros.current >= 0 && ros.items[ros.current] ? {
+      now: ros.items[ros.current].name,
+      next: ros.items[ros.current + 1] ? ros.items[ros.current + 1].name : null,
+      diff: Math.round(rosActualSoFar() - rosTotalPlanned(ros.current + 1))
+    } : null,
     live: state.live,
     slide: state.slide,
     lastCue: state.log.length ? state.log[state.log.length - 1] : null,
@@ -1075,8 +1239,16 @@ function publish(force) {
     at: now
   };
   fetch(`${dbBase()}/shows/${showKey}/state.json`, { method: 'PUT', body: JSON.stringify(payload) })
-    .then(r => { $('shareState').textContent = r.ok ? `Sharing · updated ${clockOf(Date.now())}` : `Share error ${r.status}`; })
-    .catch(() => { $('shareState').textContent = 'Share failed — check the database URL and rules.'; });
+    .then(r => {
+      netOk = r.ok;
+      $('shareState').textContent = r.ok ? `Sharing · updated ${clockOf(Date.now())}` : `Share error ${r.status}`;
+      setNet(r.ok ? 'on' : 'error');
+    })
+    .catch(() => {
+      netOk = false;
+      setNet('error');
+      $('shareState').textContent = 'Offline — the show keeps running; the link resumes when the network returns.';
+    });
 }
 function publishBackground(bg) {
   if (!dbBase()) return;
@@ -1176,6 +1348,9 @@ if (!popoutPanel) {
     const bg = readBg();
     if (bg) publishBackground(bg);
   });
+  $('showName').addEventListener('change', () => { refreshLink(); publish(true); });
+  document.querySelectorAll('.vopt').forEach(c => c.addEventListener('change', () => { refreshLink(); save(); }));
+  $('openLink').addEventListener('click', () => window.open(viewerLink(), '_blank', 'noopener'));
   $('copyLink').addEventListener('click', () => {
     navigator.clipboard.writeText(viewerLink()).then(() => { $('shareState').textContent = 'Link copied.'; });
   });
@@ -1248,6 +1423,10 @@ if (!popoutPanel) {
     delete all[sel.value];
     writeLayouts(all);
     fillLayoutList('');
+renderMessage();
+renderRos();
+applyLock();
+setNet('off');
   });
   $('resetLayout').addEventListener('click', () => {
     try {
@@ -1297,6 +1476,44 @@ if (!popoutPanel) {
     save();
     publish(true);
   });
+  document.querySelectorAll('.quick').forEach(b => b.addEventListener('click', () => setMessage(b.textContent)));
+  $('msgSend').addEventListener('click', () => setMessage($('msgText').value));
+  $('msgText').addEventListener('keydown', e => { if (e.key === 'Enter') setMessage($('msgText').value); });
+  $('msgClear').addEventListener('click', () => setMessage(''));
+
+  $('rosAdd').addEventListener('click', () => {
+    const name = $('rosName').value.trim();
+    const mins = parseFloat($('rosMins').value);
+    if (!name || isNaN(mins)) return;
+    ros.items.push({ name, mins, actual: 0 });
+    $('rosName').value = ''; $('rosMins').value = '';
+    renderRos(); save(); publish(true);
+  });
+  $('rosName').addEventListener('keydown', e => { if (e.key === 'Enter') $('rosMins').focus(); });
+  $('rosMins').addEventListener('keydown', e => { if (e.key === 'Enter') $('rosAdd').click(); });
+  $('rosStart').addEventListener('click', () => { if (ros.items.length) rosGoto(0); });
+  $('rosNext').addEventListener('click', () => {
+    if (ros.current < 0) return rosGoto(0);
+    rosGoto(ros.current + 1 < ros.items.length ? ros.current + 1 : -1);
+  });
+  $('rosStop').addEventListener('click', () => rosGoto(-1));
+  $('rosExport').addEventListener('click', () => {
+    const rows = [['Segment', 'Planned (min)', 'Actual (min)', 'Difference (min)']];
+    ros.items.forEach(it => {
+      const actual = (it.actual || 0) / 60;
+      rows.push([it.name, it.mins, actual.toFixed(1), (actual - it.mins).toFixed(1)]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const d = new Date();
+    a.download = `run-of-show-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  $('lockUi').addEventListener('change', e => { locked = e.target.checked; applyLock(); save(); });
+
   $('stopZero').addEventListener('change', e => {
     stopAtZero = e.target.checked;
     renderTimer();
@@ -1386,6 +1603,10 @@ loadSaved();
   });
 })();
 fillLayoutList('');
+renderMessage();
+renderRos();
+applyLock();
+setNet('off');
 if ($('arrowStyle')) $('arrowStyle').value = arrowStyle;
 if ($('stacked')) $('stacked').checked = arrowStacked;
 try {
