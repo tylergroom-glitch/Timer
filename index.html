@@ -202,7 +202,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 42</span></h1>
+  <h1>Cue Console</h1>
   <span class="pill"><span class="dot" id="dot"></span><span id="status">Cues: not connected</span></span>
   <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
   <button class="primary" id="connect">Connect a dongle</button>
@@ -376,7 +376,7 @@ body.popout .win header{display:none}
   </section>
 
   <section class="win" id="win-debug" style="left:40px;top:120px;width:430px;height:240px">
-    <header><span class="name">Dongles · build 42</span><button class="mini" title="Minimize">&minus;</button></header>
+    <header><span class="name">Dongles</span><button class="mini" title="Minimize">&minus;</button></header>
     <div class="body"><div id="debug" style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.7">No dongles connected.</div></div>
     <div class="grip"></div>
   </section>
@@ -875,7 +875,6 @@ function onReport(bytes) {
 
 /* ---------- Timer packets ---------- */
 let candidate = null, liveSeen = 0, lastKey = null;
-let lastParsed = '', lastReject = '', liveSets = 0, liveSnapshot = '', gateSkips = 0, errCount = 0;
 let lastPrograms = null, lastBlink = null, lastFlagsSeen = -1, lastTickAt = 0, runningNow = false;
 let autoProgram = 0;
 let selectedProgram = 'auto';
@@ -888,8 +887,6 @@ function onTimerReport(role, bytes) {
   while (i < role.buf.length - 6) {
     // header is 81 00 20 <length>; the length byte varies between units
     if (role.buf[i] === 0x81 && role.buf[i+1] === 0x00 && role.buf[i+2] === 0x20) {
-      role.hdr = (role.hdr || 0) + 1;
-      role.hdrByte = role.buf[i+3];
       let end = -1;
       for (let j = i + 20; j < Math.min(i + 200, role.buf.length); j++) {
         if (role.buf[j] === 0x83) { end = j; break; }
@@ -902,11 +899,7 @@ function onTimerReport(role, bytes) {
       if (role.pktLen >= 40) {
         role.kind = 'timer';
         state.timerConnected = true;
-        role.ok = (role.ok || 0) + 1;
-        role.sample = role.buf.slice(i, end + 1).map(x => x.toString(16).padStart(2, '0')).join(' ');
         applyLive(role.buf.slice(i, end + 1));
-      } else {
-        role.short = (role.short || 0) + 1;
       }
       i = end + 1;
     } else i++;
@@ -925,9 +918,7 @@ function applyLive(b) {
       elapsed: b[o + 6] * 128 + b[o + 7]
     });
   }
-  lastParsed = programs.map(p => `${Math.floor(p.total/60)}:${pad(p.total%60)}`).join(' ') +
-    ` | sel ${b[5]} | el ${programs[0].elapsed}`;
-  if (programs.some(p => p.total > 86400 || p.elapsed > 86400)) { lastReject = 'out of range'; return; }
+  if (programs.some(p => p.total > 86400 || p.elapsed > 86400)) return;
   const selected = b[5] >= 0 && b[5] <= 3 ? b[5] : 0;
   // flags live one block ahead of the times: P1 at byte 6, P2 at 17, P3 at 28, P4 at 39
   const allFlags = [0, 1, 2, 3].map(k => b[6 + 11 * k] || 0);
@@ -950,7 +941,7 @@ function applyLive(b) {
 
   const key = programs.map(p => `${p.total},${p.yellow},${p.elapsed}`).join('|') + '|' + selected;
   const same = key === lastKey;
-  if (!same && candidate !== key) { candidate = key; gateSkips++; return; }
+  if (!same && candidate !== key) { candidate = key; return; }
   candidate = key;
 
   try {
@@ -968,16 +959,13 @@ function applyLive(b) {
     var wasBeeping = state.live && state.live.beep;
     state.live = { total: p.total, yellow: p.yellow, elapsed: p.elapsed,
       running: runningNow && pickIndex === selected, program: (programs[pickIndex] ? pickIndex : 0) + 1, blink, beep };
-    liveSets++;
-    liveSnapshot = `${p.total}s pick ${pickIndex} sel ${selectedProgram}`;
-  } catch (err) {
-    errCount++;
-    lastReject = 'error: ' + ((err && err.message) || err);
+
+  } catch {
     return;
   }
 
   if (beep && !wasBeeping) { try { playClick(); } catch {} }
-  try { renderTimer(); } catch (err) { lastReject = 'render: ' + ((err && err.message) || err); }
+  try { renderTimer(); } catch {}
   try { render(); } catch {}
   try { broadcast(); publish(); } catch {}
 }
@@ -1008,7 +996,6 @@ async function attach(d) {
   d.addEventListener('inputreport', e => {
     const bytes = new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength);
     role.count = (role.count || 0) + 1;
-    role.last = Array.from(bytes.slice(0, 8), x => x.toString(16).padStart(2, '0')).join(' ');
     role.lastAt = Date.now();
     if (bytes.some(x => x !== 0)) {
       role.sawData = Date.now();
@@ -1178,14 +1165,8 @@ setInterval(() => {
   if (!roles.length) { box.textContent = 'No dongles connected.'; return; }
   box.innerHTML = roles.map((r, i) => {
     const age = r.lastAt ? Math.round((Date.now() - r.lastAt) / 1000) + 's ago' : 'never';
-    const sent = r.sent === undefined ? '—' : (r.sent === 0 ? '8D 00 (timer)' : '8D 01 (cue)');
-    return `<div>#${i + 1} role ${r.kind || 'unknown'} · reports ${r.count || 0} (${age})<br>` +
-      `&nbsp;&nbsp;mode sent: ${sent}${r.sendErr ? ' · ERROR ' + r.sendErr : ' · ok'}<br>` +
-      `&nbsp;&nbsp;last: ${r.last || '—'}<br>` +
-      (r.kind === 'timer' ? `&nbsp;&nbsp;parsed: ${lastParsed || '—'}<br>&nbsp;&nbsp;state: ${state.live ? 'live' : 'none'} · sets ${liveSets} · skips ${gateSkips} · errs ${errCount}<br>&nbsp;&nbsp;${liveSnapshot || '—'}${lastReject ? ' · ' + lastReject : ''}<br>` : '') +
-      `&nbsp;&nbsp;headers ${r.hdr || 0} · packets ${r.ok || 0} · short ${r.short || 0} · len ${r.pktLen || '—'}` +
-      `${r.hdrByte !== undefined ? ' · type ' + r.hdrByte.toString(16) : ''}<br>` +
-      (r.sample ? `<div style="color:var(--dim);word-break:break-all;margin:2px 0 4px">${r.sample}</div>` : '') +
+    const kind = r.kind === 'timer' ? 'speaker timer' : r.kind === 'cue' ? 'cue system' : 'identifying…';
+    return `<div>#${i + 1} · ${kind} · ${r.count ? 'receiving' : 'no data'} (${age})<br>` +
       `&nbsp;&nbsp;<button class="setrole" data-i="${i}" data-k="timer">Use as timer</button> ` +
       `<button class="setrole" data-i="${i}" data-k="cue">Use as cue</button></div>`;
   }).join('');
