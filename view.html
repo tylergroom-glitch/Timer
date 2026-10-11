@@ -10,6 +10,12 @@
 :root{--bg:#10151C;--text:#DCE2E8;--dim:#8C98A5;--green:#3FB950;--amber:#E3B341;--red:#F85149;--line:#2C3542}
 *{box-sizing:border-box}
 #bgLayer{position:fixed;inset:0;background-size:cover;background-position:center;z-index:-1}
+body.laid-out{display:block;padding:0}
+body.laid-out #tod,body.laid-out #time,body.laid-out .arrows,
+body.laid-out #slide,body.laid-out #msg,body.laid-out #ros{
+  position:absolute;margin:0;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
+body.laid-out #sub{display:none}
+body.laid-out .arrows{gap:4%}
 body.clear{background:transparent}
 body.clear #bgLayer{display:none}
 body.clear #time,body.clear .cue-arrow,body.clear #slide,body.clear #sub{filter:drop-shadow(0 2px 7px rgba(0,0,0,.6))}
@@ -162,6 +168,44 @@ if (!db || !key) {
 }
 
 let lastCueAt = 0;
+let appliedLayout = null;
+
+function applyRemoteLayout(layout) {
+  if (!layout) return;
+  appliedLayout = layout;
+  document.body.classList.add('laid-out');
+  const map = { tod: '#tod', timer: '#time', arrows: '.arrows', nownext: '#ros', message: '#msg', slide: '#slide' };
+  for (const [k, sel] of Object.entries(map)) {
+    const el = document.querySelector(sel);
+    const b = layout[k];
+    if (!el) continue;
+    if (!b || !b.on) { el.style.display = 'none'; continue; }
+    el.style.display = 'flex';
+    el.style.left = b.x + '%';
+    el.style.top = b.y + '%';
+    el.style.width = b.w + '%';
+    el.style.height = b.h + '%';
+  }
+  sizeText();
+}
+
+// scale type to the box it sits in
+function sizeText() {
+  if (!appliedLayout) return;
+  const h = window.innerHeight;
+  const set = (sel, k, factor) => {
+    const el = document.querySelector(sel);
+    const b = appliedLayout[k];
+    if (!el || !b || !b.on) return;
+    el.style.fontSize = Math.max(10, (b.h / 100) * h * factor) + 'px';
+  };
+  set('#time', 'timer', 0.82);
+  set('#tod', 'tod', 0.7);
+  set('#msg', 'message', 0.5);
+  set('#ros', 'nownext', 0.55);
+  set('#slide', 'slide', 0.5);
+}
+window.addEventListener('resize', sizeText);
 let shownStyle = null;
 let shownStacked = false;
 const arrowIdPrefix = 'a';
@@ -221,6 +265,7 @@ function paint(d) {
   }
   if (d.arrowStyle && d.arrowStyle !== shownStyle) { shownStyle = d.arrowStyle; paintArrows(d.arrowStyle); }
   if (typeof d.arrowStacked === 'boolean' && d.arrowStacked !== shownStacked) { shownStacked = d.arrowStacked; applyLayout(d.arrowStacked); }
+  if (d.layout) applyRemoteLayout(d.layout);
   $('slideNum').textContent = d.slide != null ? d.slide : 0;
 
   const msg = $('msg');

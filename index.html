@@ -185,6 +185,14 @@ body.msg-live #msgEdit{opacity:.55}
 #rosList button{padding:1px 6px;font-size:11px}
 body.locked .grip,body.locked #bar .al,body.locked #msgEdit,body.locked #rosBody .row{display:none}
 body.locked .win header button.mini,body.locked .win header button.clearbg{display:none}
+#rlBody{padding:10px}
+#rlStage{position:relative;width:100%;aspect-ratio:16/9;background:#0C1118;border:1px solid var(--line);
+  border-radius:6px;overflow:hidden;touch-action:none}
+.rlbox{position:absolute;background:rgba(31,78,140,.45);border:1px solid var(--blue);border-radius:4px;
+  color:var(--text);font-size:11px;display:flex;align-items:center;justify-content:center;cursor:grab;user-select:none}
+.rlbox.off{background:rgba(70,80,92,.25);border-color:var(--line);color:var(--dim)}
+.rlbox::after{content:'';position:absolute;right:0;bottom:0;width:12px;height:12px;cursor:nwse-resize;
+  background:linear-gradient(135deg,transparent 50%,var(--blue) 50%)}
 #camBody{display:flex;flex-direction:column;gap:8px;padding:10px}
 #camView{flex:1;min-height:0;display:none;background:#000;border-radius:6px;overflow:hidden}
 #camView.on{display:block}
@@ -202,7 +210,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 46</span></h1>
+  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 47</span></h1>
   <span class="pill"><span class="dot" id="dot"></span><span id="status">Cues: not connected</span></span>
   <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
   <button class="primary" id="connect">Connect a dongle</button>
@@ -376,6 +384,26 @@ body.popout .win header{display:none}
     <div class="grip"></div>
   </section>
 
+  <section class="win" id="win-rlayout" style="left:40px;top:140px;width:520px;height:400px">
+    <header><span class="name">Remote layout</span><button class="mini" title="Minimize">&minus;</button></header>
+    <div class="body" id="rlBody">
+      <div id="rlStage">
+        <div class="rlbox" data-k="tod">Time of day</div>
+        <div class="rlbox" data-k="timer">Timer</div>
+        <div class="rlbox" data-k="arrows">Arrows</div>
+        <div class="rlbox" data-k="nownext">Now / next</div>
+        <div class="rlbox" data-k="message">Message</div>
+        <div class="rlbox" data-k="slide">Slide</div>
+      </div>
+      <p style="margin:6px 0 0;font-size:12px;color:var(--dim)">Drag to move, corner to resize, double-click to hide or show.</p>
+      <div class="row" style="justify-content:flex-start;margin-top:6px">
+        <button id="rlReset">Reset</button>
+        <button id="rlPreview">Preview</button>
+      </div>
+    </div>
+    <div class="grip"></div>
+  </section>
+
   <section class="win" id="win-debug" style="left:40px;top:120px;width:430px;height:240px">
     <header><span class="name">Dongles</span><button class="mini" title="Minimize">&minus;</button></header>
     <div class="body"><div id="debug" style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.7">No dongles connected.</div></div>
@@ -465,6 +493,7 @@ function loadSaved() {
     if (typeof saved.message === 'string') message = saved.message;
     if (saved.ros && Array.isArray(saved.ros.items)) ros = Object.assign({ items: [], current: -1, startedAt: null }, saved.ros, { startedAt: null, current: -1 });
     if (typeof saved.locked === 'boolean') locked = saved.locked;
+    if (saved.rlayout) Object.keys(RL_DEFAULT).forEach(k => { if (saved.rlayout[k]) rlayout[k] = saved.rlayout[k]; });
     if (typeof saved.clock24 === 'boolean') clock24 = saved.clock24;
     if (typeof saved.clockSeconds === 'boolean') clockSeconds = saved.clockSeconds;
     if (saved.camUrl && $('camUrl')) $('camUrl').value = saved.camUrl;
@@ -482,7 +511,7 @@ function save() {
       layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height,
                        min: w.dataset.min === '1', clear: w.classList.contains('clear') };
     });
-    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, showDetails, clock24, clockSeconds, selectedProgram, message, ros, locked,
+    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, showDetails, clock24, clockSeconds, selectedProgram, message, ros, locked, rlayout,
       camUrl: $('camUrl') ? $('camUrl').value.trim() : '', camMode: $('camMode') ? $('camMode').value : 'snapshot',
       dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey,
       showName: $('showName') ? $('showName').value.trim() : '', viewerOpts: viewerOptions() }));
@@ -1163,6 +1192,68 @@ function applyLock() {
   if ($('lockUi')) $('lockUi').checked = locked;
 }
 
+/* ---------- Remote layout builder ---------- */
+const RL_DEFAULT = {
+  tod:     { x: 70, y: 4,  w: 27, h: 14, on: true },
+  timer:   { x: 8,  y: 22, w: 84, h: 46, on: true },
+  arrows:  { x: 20, y: 70, w: 60, h: 22, on: true },
+  nownext: { x: 4,  y: 92, w: 92, h: 7,  on: true },
+  message: { x: 10, y: 2,  w: 55, h: 16, on: false },
+  slide:   { x: 2,  y: 2,  w: 14, h: 10, on: false }
+};
+let rlayout = JSON.parse(JSON.stringify(RL_DEFAULT));
+
+function renderRlayout() {
+  document.querySelectorAll('.rlbox').forEach(el => {
+    const b = rlayout[el.dataset.k];
+    if (!b) return;
+    el.style.left = b.x + '%';
+    el.style.top = b.y + '%';
+    el.style.width = b.w + '%';
+    el.style.height = b.h + '%';
+    el.classList.toggle('off', !b.on);
+  });
+}
+
+function initRlayout() {
+  const stage = $('rlStage');
+  if (!stage) return;
+  document.querySelectorAll('.rlbox').forEach(el => {
+    el.addEventListener('dblclick', () => {
+      const b = rlayout[el.dataset.k];
+      b.on = !b.on;
+      renderRlayout(); save(); publish(true);
+    });
+    el.addEventListener('pointerdown', e => {
+      const b = rlayout[el.dataset.k];
+      const rect = stage.getBoundingClientRect();
+      const box = el.getBoundingClientRect();
+      const resizing = (e.clientX > box.right - 14 && e.clientY > box.bottom - 14);
+      const ox = e.clientX - box.left, oy = e.clientY - box.top;
+      el.setPointerCapture(e.pointerId);
+      const move = ev => {
+        if (resizing) {
+          b.w = Math.max(5, Math.min(100 - b.x, ((ev.clientX - box.left) / rect.width) * 100));
+          b.h = Math.max(4, Math.min(100 - b.y, ((ev.clientY - box.top) / rect.height) * 100));
+        } else {
+          b.x = Math.max(0, Math.min(100 - b.w, ((ev.clientX - rect.left - ox) / rect.width) * 100));
+          b.y = Math.max(0, Math.min(100 - b.h, ((ev.clientY - rect.top - oy) / rect.height) * 100));
+        }
+        renderRlayout();
+      };
+      const up = () => {
+        el.removeEventListener('pointermove', move);
+        el.removeEventListener('pointerup', up);
+        ['x','y','w','h'].forEach(k => { b[k] = Math.round(b[k] * 10) / 10; });
+        renderRlayout(); save(); publish(true);
+      };
+      el.addEventListener('pointermove', move);
+      el.addEventListener('pointerup', up);
+    });
+  });
+  renderRlayout();
+}
+
 /* ---------- Dongle diagnostics ---------- */
 setInterval(() => {
   const box = $('debug');
@@ -1231,6 +1322,7 @@ function publish(force) {
   }
   lastPublish = now;
   const payload = {
+    layout: rlayout,
     message,
     ros: ros.current >= 0 && ros.items[ros.current] ? {
       now: ros.items[ros.current].name,
@@ -1434,6 +1526,7 @@ if (!popoutPanel) {
     fillLayoutList('');
 renderMessage();
 renderRos();
+initRlayout();
 applyLock();
 setNet('off');
   });
@@ -1522,6 +1615,8 @@ setNet('off');
   });
 
   on('lockUi', 'change', e => { locked = e.target.checked; applyLock(); save(); });
+  on('rlReset', 'click', () => { rlayout = JSON.parse(JSON.stringify(RL_DEFAULT)); renderRlayout(); save(); publish(true); });
+  on('rlPreview', 'click', () => window.open(viewerLink(), '_blank', 'noopener'));
 
   on('stopZero', 'change', e => {
     stopAtZero = e.target.checked;
@@ -1614,6 +1709,7 @@ loadSaved();
 fillLayoutList('');
 renderMessage();
 renderRos();
+initRlayout();
 applyLock();
 setNet('off');
 if ($('arrowStyle')) $('arrowStyle').value = arrowStyle;
