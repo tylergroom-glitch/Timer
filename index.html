@@ -324,6 +324,7 @@ body.popout .win header{display:none}
       <div class="row" style="justify-content:flex-start;margin-top:8px">
         <button id="copyLink">Copy link</button>
         <button id="openLink">Open</button>
+        <button id="newLink">New link</button>
       </div>
       <p id="shareState">Not sharing.</p>
       <div id="link"></div>
@@ -399,6 +400,7 @@ const state = {
 };
 
 const $ = id => document.getElementById(id);
+function on(id, ev, fn) { const el = $(id); if (el) el.addEventListener(ev, fn); }
 const pad = n => String(n).padStart(2, '0');
 const clockOf = ms => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
 function duration(ms) { if (ms == null) return '—'; const s = Math.round(ms / 1000); return s < 60 ? `${s}s` : `${Math.floor(s/60)}m ${pad(s%60)}s`; }
@@ -1342,19 +1344,19 @@ function startCamera(url, mode) {
 
 /* ---------- Wiring ---------- */
 if (!popoutPanel) {
-  $('dbUrl').addEventListener('change', () => {
+  on('dbUrl', 'change', () => {
     refreshLink();
     publish(true);
     const bg = readBg();
     if (bg) publishBackground(bg);
   });
-  $('showName').addEventListener('change', () => { refreshLink(); publish(true); });
+  on('showName', 'change', () => { refreshLink(); publish(true); });
   document.querySelectorAll('.vopt').forEach(c => c.addEventListener('change', () => { refreshLink(); save(); }));
-  $('openLink').addEventListener('click', () => window.open(viewerLink(), '_blank', 'noopener'));
-  $('copyLink').addEventListener('click', () => {
+  on('openLink', 'click', () => window.open(viewerLink(), '_blank', 'noopener'));
+  on('copyLink', 'click', () => {
     navigator.clipboard.writeText(viewerLink()).then(() => { $('shareState').textContent = 'Link copied.'; });
   });
-  $('newLink').addEventListener('click', () => {
+  on('newLink', 'click', () => {
     showKey = Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
     refreshLink();
     publish(true);
@@ -1374,7 +1376,7 @@ if (!popoutPanel) {
     publishBackground(bg);
   }));
 
-  $('bgFile').addEventListener('change', e => {
+  on('bgFile', 'change', e => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -1399,12 +1401,12 @@ if (!popoutPanel) {
     reader.readAsDataURL(file);
   });
 
-  $('bgClear').addEventListener('click', () => {
+  on('bgClear', 'click', () => {
     applyBackground(null, true);
     publishBackground(null);
   });
 
-  $('layoutSave').addEventListener('click', () => {
+  on('layoutSave', 'click', () => {
     const name = prompt('Name this layout (for example: Ballroom, Breakout, Stage left)');
     if (!name) return;
     const all = readLayouts();
@@ -1412,11 +1414,11 @@ if (!popoutPanel) {
     writeLayouts(all);
     fillLayoutList(name.trim());
   });
-  $('layoutPick').addEventListener('change', e => {
+  on('layoutPick', 'change', e => {
     const all = readLayouts();
     if (all[e.target.value]) applyLayout2(all[e.target.value]);
   });
-  $('layoutDelete').addEventListener('click', () => {
+  on('layoutDelete', 'click', () => {
     const sel = $('layoutPick');
     if (!sel.value) return;
     const all = readLayouts();
@@ -1428,7 +1430,7 @@ renderRos();
 applyLock();
 setNet('off');
   });
-  $('resetLayout').addEventListener('click', () => {
+  on('resetLayout', 'click', () => {
     try {
       const raw = JSON.parse(localStorage.getItem('cue-console') || '{}');
       delete raw.layout;
@@ -1436,12 +1438,12 @@ setNet('off');
     } catch {}
     location.reload();
   });
-  $('reset').addEventListener('click', () => {
+  on('reset', 'click', () => {
     state.slide = 0; state.total = 0; state.log = []; state.holds = []; state.lastCueAt = null;
     render(); save(); broadcast(); publish(true);
   });
-  $('plus').addEventListener('click', () => applyCue('next'));
-  $('minus').addEventListener('click', () => applyCue('back'));
+  on('plus', 'click', () => applyCue('next'));
+  on('minus', 'click', () => applyCue('back'));
   document.querySelectorAll('.prog').forEach(btn => btn.addEventListener('click', () => {
     selectedProgram = btn.dataset.prog === 'auto' ? 'auto' : Number(btn.dataset.prog);
     if (state.programs) {
@@ -1453,35 +1455,35 @@ setNet('off');
     save();
     publish(true);
   }));
-  $('todFormat').addEventListener('click', e => {
+  on('todFormat', 'click', e => {
     clock24 = !clock24;
     e.target.textContent = clock24 ? '12 hour' : '24 hour';
     renderClock();
     save();
   });
-  $('todSeconds').addEventListener('click', e => {
+  on('todSeconds', 'click', e => {
     clockSeconds = !clockSeconds;
     e.target.textContent = clockSeconds ? 'Hide seconds' : 'Show seconds';
     renderClock();
     save();
   });
-  $('showDetails').addEventListener('change', e => {
+  on('showDetails', 'change', e => {
     showDetails = e.target.checked;
     document.body.classList.toggle('hide-details', !showDetails);
     save();
   });
-  $('flashZero').addEventListener('change', e => {
+  on('flashZero', 'change', e => {
     flashAtZero = e.target.checked;
     renderTimer();
     save();
     publish(true);
   });
   document.querySelectorAll('.quick').forEach(b => b.addEventListener('click', () => setMessage(b.textContent)));
-  $('msgSend').addEventListener('click', () => setMessage($('msgText').value));
-  $('msgText').addEventListener('keydown', e => { if (e.key === 'Enter') setMessage($('msgText').value); });
-  $('msgClear').addEventListener('click', () => setMessage(''));
+  on('msgSend', 'click', () => setMessage($('msgText').value));
+  on('msgText', 'keydown', e => { if (e.key === 'Enter') setMessage($('msgText').value); });
+  on('msgClear', 'click', () => setMessage(''));
 
-  $('rosAdd').addEventListener('click', () => {
+  on('rosAdd', 'click', () => {
     const name = $('rosName').value.trim();
     const mins = parseFloat($('rosMins').value);
     if (!name || isNaN(mins)) return;
@@ -1489,15 +1491,15 @@ setNet('off');
     $('rosName').value = ''; $('rosMins').value = '';
     renderRos(); save(); publish(true);
   });
-  $('rosName').addEventListener('keydown', e => { if (e.key === 'Enter') $('rosMins').focus(); });
-  $('rosMins').addEventListener('keydown', e => { if (e.key === 'Enter') $('rosAdd').click(); });
-  $('rosStart').addEventListener('click', () => { if (ros.items.length) rosGoto(0); });
-  $('rosNext').addEventListener('click', () => {
+  on('rosName', 'keydown', e => { if (e.key === 'Enter') $('rosMins').focus(); });
+  on('rosMins', 'keydown', e => { if (e.key === 'Enter') $('rosAdd').click(); });
+  on('rosStart', 'click', () => { if (ros.items.length) rosGoto(0); });
+  on('rosNext', 'click', () => {
     if (ros.current < 0) return rosGoto(0);
     rosGoto(ros.current + 1 < ros.items.length ? ros.current + 1 : -1);
   });
-  $('rosStop').addEventListener('click', () => rosGoto(-1));
-  $('rosExport').addEventListener('click', () => {
+  on('rosStop', 'click', () => rosGoto(-1));
+  on('rosExport', 'click', () => {
     const rows = [['Segment', 'Planned (min)', 'Actual (min)', 'Difference (min)']];
     ros.items.forEach(it => {
       const actual = (it.actual || 0) / 60;
@@ -1512,28 +1514,28 @@ setNet('off');
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
-  $('lockUi').addEventListener('change', e => { locked = e.target.checked; applyLock(); save(); });
+  on('lockUi', 'change', e => { locked = e.target.checked; applyLock(); save(); });
 
-  $('stopZero').addEventListener('change', e => {
+  on('stopZero', 'change', e => {
     stopAtZero = e.target.checked;
     renderTimer();
     save();
     publish(true);
   });
-  $('sound').addEventListener('change', e => {
+  on('sound', 'change', e => {
     soundOn = e.target.checked;
     if (soundOn) playClick();
     save();
   });
-  $('stacked').addEventListener('change', e => {
+  on('stacked', 'change', e => {
     arrowStacked = e.target.checked;
     applyLayout(arrowStacked);
     save();
     publish(true);
   });
-  $('camApply').addEventListener('click', () => startCamera($('camUrl').value.trim(), $('camMode').value));
-  $('camStop').addEventListener('click', stopCamera);
-  $('arrowStyle').addEventListener('change', e => {
+  on('camApply', 'click', () => startCamera($('camUrl').value.trim(), $('camMode').value));
+  on('camStop', 'click', stopCamera);
+  on('arrowStyle', 'change', e => {
     arrowStyle = e.target.value;
     paintArrows(arrowStyle);
     save();
@@ -1549,7 +1551,7 @@ setNet('off');
 }
 
 if (!popoutPanel && 'hid' in navigator) {
-  $('connect').addEventListener('click', async () => {
+  on('connect', 'click', async () => {
     let list = [];
     try { list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID }] }); } catch {}
     for (const d of list) await attach(d);
