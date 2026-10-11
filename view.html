@@ -331,6 +331,20 @@ function flash(type) {
   });
 }
 
+function loadBackground() {
+  fetch(`${db}/shows/${key}/bg.json`, { cache: 'no-store' })
+    .then(r => r.json())
+    .then(d => {
+      const layer = document.getElementById('bgLayer');
+      if (!layer) return;
+      if (!d) { layer.style.backgroundImage = ''; layer.style.backgroundColor = ''; return; }
+      if (typeof d === 'string') { layer.style.backgroundColor = ''; layer.style.backgroundImage = `url(${d})`; return; }
+      if (d.type === 'color') { layer.style.backgroundImage = ''; layer.style.backgroundColor = d.value; }
+      else { layer.style.backgroundColor = ''; layer.style.backgroundImage = `url(${d.value})`; }
+    })
+    .catch(() => {});
+}
+
 function start() {
   loadBackground();
   setInterval(loadBackground, 30000);
