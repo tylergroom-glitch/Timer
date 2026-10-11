@@ -884,14 +884,18 @@ function onTimerReport(role, bytes) {
   for (let i = 1; i <= n; i++) role.buf.push(bytes[i]);
   let i = 0;
   while (i < role.buf.length - 6) {
-    if (role.buf[i] === 0x81 && role.buf[i+1] === 0x00 && role.buf[i+2] === 0x20 && role.buf[i+3] === 0x2f) {
+    // header is 81 00 20 <length>; the length byte varies between units
+    if (role.buf[i] === 0x81 && role.buf[i+1] === 0x00 && role.buf[i+2] === 0x20) {
       role.hdr = (role.hdr || 0) + 1;
-      // find this packet's end marker rather than assuming a fixed length
+      role.hdrByte = role.buf[i+3];
       let end = -1;
-      for (let j = i + 20; j < Math.min(i + 90, role.buf.length); j++) {
+      for (let j = i + 20; j < Math.min(i + 200, role.buf.length); j++) {
         if (role.buf[j] === 0x83) { end = j; break; }
       }
-      if (end < 0) break;                      // wait for more bytes
+      if (end < 0) {
+        if (role.buf.length - i > 200) { i++; continue; }
+        break;                                  // wait for the rest
+      }
       role.pktLen = end - i + 1;
       if (role.pktLen >= 40) {
         role.kind = 'timer';
@@ -906,7 +910,7 @@ function onTimerReport(role, bytes) {
     } else i++;
   }
   role.buf = role.buf.slice(i);
-  if (role.buf.length > 4096) role.buf = [];
+  if (role.buf.length > 8192) role.buf = [];
 }
 
 function applyLive(b) {
@@ -1163,8 +1167,9 @@ setInterval(() => {
     return `<div>#${i + 1} role ${r.kind || 'unknown'} · reports ${r.count || 0} (${age})<br>` +
       `&nbsp;&nbsp;mode sent: ${sent}${r.sendErr ? ' · ERROR ' + r.sendErr : ' · ok'}<br>` +
       `&nbsp;&nbsp;last: ${r.last || '—'}<br>` +
-      `&nbsp;&nbsp;headers ${r.hdr || 0} · packets ${r.ok || 0} · short ${r.short || 0} · len ${r.pktLen || '—'}<br>` +
-      (r.sample ? `&nbsp;&nbsp;<span style="color:var(--dim)">${r.sample}</span><br>` : '') +
+      `&nbsp;&nbsp;headers ${r.hdr || 0} · packets ${r.ok || 0} · short ${r.short || 0} · len ${r.pktLen || '—'}` +
+      `${r.hdrByte !== undefined ? ' · type ' + r.hdrByte.toString(16) : ''}<br>` +
+      (r.sample ? `<div style="color:var(--dim);word-break:break-all;margin:2px 0 4px">${r.sample}</div>` : '') +
       `&nbsp;&nbsp;<button class="setrole" data-i="${i}" data-k="timer">Use as timer</button> ` +
       `<button class="setrole" data-i="${i}" data-k="cue">Use as cue</button></div>`;
   }).join('');
