@@ -953,22 +953,30 @@ function applyLive(b) {
   lastReject = '';
   candidate = key;
 
-  // the timer counts up while it runs, so a moving clock means running
-  if (lastPrograms && programs[selected].elapsed !== lastPrograms[selected].elapsed) lastTickAt = Date.now();
-  runningNow = Date.now() - lastTickAt < 2500;
+  try {
+    // the timer counts up while it runs, so a moving clock means running
+    if (lastPrograms && programs[selected].elapsed !== lastPrograms[selected].elapsed) lastTickAt = Date.now();
+    runningNow = Date.now() - lastTickAt < 2500;
 
-  autoProgram = selected;
-  lastPrograms = programs;
-  lastKey = key;
+    autoProgram = selected;
+    lastPrograms = programs;
+    lastKey = key;
 
-  const pick = selectedProgram === 'auto' ? autoProgram : selectedProgram;
-  const p = programs[pick] || programs[0];
-  state.programs = programs;
-  const wasBeeping = state.live && state.live.beep;
-  state.live = { total: p.total, yellow: p.yellow, elapsed: p.elapsed,
-    running: runningNow && pick === selected, program: pick + 1, blink, beep };
-  if (beep && !wasBeeping) playClick();
-  if (!same) { renderTimer(); broadcast(); publish(); }
+    const pickIndex = selectedProgram === 'auto' ? autoProgram : Number(selectedProgram);
+    const p = programs[pickIndex] || programs[0];
+    state.programs = programs;
+    var wasBeeping = state.live && state.live.beep;
+    state.live = { total: p.total, yellow: p.yellow, elapsed: p.elapsed,
+      running: runningNow && pickIndex === selected, program: (programs[pickIndex] ? pickIndex : 0) + 1, blink, beep };
+  } catch (err) {
+    lastReject = 'error: ' + ((err && err.message) || err);
+    return;
+  }
+
+  if (beep && !wasBeeping) { try { playClick(); } catch {} }
+  try { renderTimer(); } catch (err) { lastReject = 'render: ' + ((err && err.message) || err); }
+  try { render(); } catch {}
+  try { broadcast(); publish(); } catch {}
 }
 
 // keep the running flag honest when the clock stops changing
