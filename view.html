@@ -29,6 +29,10 @@ body.flashing #time{animation:zeroFlash 1s steps(1,end) infinite}
 @keyframes zeroFlash{0%,49%{opacity:1}50%,100%{opacity:.12}}
 @keyframes blink{50%{opacity:.35}}
 #sub{color:var(--dim);font-size:clamp(13px,2.2vh,17px)}
+#tod{display:none;font-variant-numeric:tabular-nums;font-weight:500;color:var(--text);
+  font-size:clamp(18px,7vh,64px);line-height:1}
+body.show-tod #tod{display:block}
+body.hide-timer #time,body.hide-timer #sub{display:none}
 .arrows{display:flex;gap:6vw;align-items:center;justify-content:center;width:min(76vw,620px)}
 .arrows svg{width:44%}
 .arrows.stacked{flex-direction:column;gap:0;justify-content:center;align-items:center}
@@ -99,23 +103,32 @@ body.flashing #time{animation:zeroFlash 1s steps(1,end) infinite}
 
 #slide{font-size:clamp(14px,2.4vh,19px);color:var(--dim)}
 #slide b{color:var(--text);font-weight:500}
+#msg{display:none;color:var(--amber);font-weight:500;text-align:center;line-height:1.2;
+  font-size:clamp(20px,5vh,54px);padding:0 4vw;margin-top:1vh}
+#msg.on{display:block}
+#ros{color:var(--dim);font-size:clamp(12px,2.2vh,18px);margin-top:.5vh}
+#ros b{color:var(--text);font-weight:500}
+body.hide-extras #msg,body.hide-extras #ros{display:none}
 #state{position:fixed;top:10px;right:14px;font-size:13px;color:var(--dim)}
 </style>
 </head>
 <body>
 <div id="bgLayer"></div>
 <div id="state">connecting…</div>
+<div id="tod"></div>
 <div id="time">--:--</div>
-<div id="sub">Waiting for the show</div>
+<div id="sub"></div>
 <div class="arrows">
   <svg viewBox="0 0 100 100" role="img" aria-label="Back cue" id="aBack" class="cue-arrow back style-classic"></svg>
   <svg viewBox="0 0 100 100" role="img" aria-label="Next cue" id="aNext" class="cue-arrow next style-classic"></svg>
 </div>
 <div id="slide">Slide <b id="slideNum">0</b></div>
+<div id="msg"></div>
+<div id="ros"></div>
 
 <script>
 const q = new URLSearchParams(location.search);
-const db = (q.get('db') || '').replace(/\/+$/, '');
+const db = (q.get('db') || 'https://dsan-f12e2-default-rtdb.firebaseio.com').replace(/\/+$/, '');
 const key = q.get('k');
 const $ = id => document.getElementById(id);
 const flag = (name, def) => { const v = q.get(name); return v === null ? def : !(v === '0' || v === 'false' || v === 'no'); };
@@ -124,6 +137,21 @@ if (!flag('arrows', true)) document.body.classList.add('hide-arrows');
 if (!flag('timer', true)) document.body.classList.add('hide-timer');
 if (!flag('slide', true)) document.body.classList.add('hide-slide');
 if (!flag('status', true)) document.body.classList.add('hide-state');
+if (!flag('extras', true)) document.body.classList.add('hide-extras');
+const showDetail = flag('detail', false);
+if (flag('tod', false)) {
+  document.body.classList.add('show-tod');
+  const todEl = document.getElementById('tod');
+  const tick = () => {
+    const d = new Date();
+    let h = d.getHours();
+    const suffix = h < 12 ? ' AM' : ' PM';
+    h = h % 12 || 12;
+    todEl.textContent = `${h}:${pad(d.getMinutes())}${suffix}`;
+  };
+  tick();
+  setInterval(tick, 1000);
+}
 const pad = n => String(n).padStart(2, '0');
 const fmt = s => `${s < 0 ? '+' : ''}${Math.floor(Math.abs(Math.round(s))/60)}:${pad(Math.abs(Math.round(s))%60)}`;
 
@@ -183,16 +211,34 @@ function paint(d) {
     $('time').textContent = fmt(left);
     $('time').className = left <= 0 ? (over && !d.stopAtZero ? 'red over' : 'red') : left <= live.yellow ? 'amber' : 'green';
     document.body.classList.toggle('flashing', left <= 0 && !!d.flashAtZero);
-    $('sub').textContent = `${live.program ? 'Program ' + live.program + ' · ' : ''}Set ${fmt(live.total)} · ${live.running ? 'running' : 'stopped'}${live.blink ? ' · BLINK' : ''}${live.beep ? ' · BEEP' : ''}`;
+    $('sub').textContent = showDetail
+      ? `${live.program ? 'Program ' + live.program + ' · ' : ''}Set ${fmt(live.total)} · ${live.running ? 'running' : 'stopped'}${live.blink ? ' · BLINK' : ''}${live.beep ? ' · BEEP' : ''}`
+      : '';
   } else {
     $('time').textContent = '--:--';
     $('time').className = '';
     document.body.classList.remove('flashing');
-    $('sub').textContent = 'Timer not running';
+    $('sub').textContent = showDetail ? 'Timer not running' : '';
   }
   if (d.arrowStyle && d.arrowStyle !== shownStyle) { shownStyle = d.arrowStyle; paintArrows(d.arrowStyle); }
   if (typeof d.arrowStacked === 'boolean' && d.arrowStacked !== shownStacked) { shownStacked = d.arrowStacked; applyLayout(d.arrowStacked); }
   $('slideNum').textContent = d.slide != null ? d.slide : 0;
+
+  const msg = $('msg');
+  if (msg) {
+    msg.textContent = d.message || '';
+    msg.classList.toggle('on', !!d.message);
+  }
+  const ros = $('ros');
+  if (ros) {
+    if (d.ros && d.ros.now) {
+      const diff = d.ros.diff || 0;
+      const label = Math.abs(diff) < 30 ? 'on time' : (diff > 0 ? 'behind' : 'ahead');
+      const mins = Math.floor(Math.abs(diff) / 60) + ':' + pad(Math.abs(diff) % 60);
+      ros.innerHTML = `Now: <b>${d.ros.now}</b>` + (d.ros.next ? ` · next: ${d.ros.next}` : '') +
+        ` · ${label === 'on time' ? 'on time' : mins + ' ' + label}`;
+    } else ros.innerHTML = '';
+  }
   if (d.lastCue && d.lastCue.at && d.lastCue.at !== lastCueAt) {
     lastCueAt = d.lastCue.at;
     if (Date.now() - d.lastCue.at < 8000) flash(d.lastCue.type);
