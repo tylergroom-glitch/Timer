@@ -15,7 +15,12 @@ body.laid-out #tod,body.laid-out #time,body.laid-out .arrows,
 body.laid-out #slide,body.laid-out #msg,body.laid-out #ros{
   position:absolute;margin:0;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
 body.laid-out #sub{display:none}
-body.laid-out .arrows{gap:4%}
+body.laid-out .arrows{gap:3%;width:auto}
+body.laid-out .arrows svg{width:auto;height:100%;max-width:48%;transform:none;margin:0}
+body.laid-out .arrows.stacked{flex-direction:column;gap:0}
+body.laid-out .arrows.stacked svg{height:50%;width:auto;max-width:100%}
+body.laid-out .arrows.stacked .cue-arrow.next{transform:translate(3%,-4%)}
+body.laid-out .arrows.stacked .cue-arrow.back{transform:translate(5%,0);margin-top:-14%}
 body.clear{background:transparent}
 body.clear #bgLayer{display:none}
 body.clear #time,body.clear .cue-arrow,body.clear #slide,body.clear #sub{filter:drop-shadow(0 2px 7px rgba(0,0,0,.6))}
@@ -185,6 +190,9 @@ function applyRemoteLayout(layout) {
     el.style.top = b.y + '%';
     el.style.width = b.w + '%';
     el.style.height = b.h + '%';
+    el.style.justifyContent = b.align === 'left' ? 'flex-start' : b.align === 'right' ? 'flex-end' : 'center';
+    if (k !== 'arrows' && k !== 'timer') el.style.color = (b.color && b.color !== 'auto') ? b.color : '';
+    if (k === 'timer' && b.color && b.color !== 'auto') el.style.color = b.color;
   }
   sizeText();
 }
@@ -193,11 +201,11 @@ function applyRemoteLayout(layout) {
 function sizeText() {
   if (!appliedLayout) return;
   const h = window.innerHeight;
-  const set = (sel, k, factor) => {
+  const set = (sel, k, fallback) => {
     const el = document.querySelector(sel);
     const b = appliedLayout[k];
     if (!el || !b || !b.on) return;
-    el.style.fontSize = Math.max(10, (b.h / 100) * h * factor) + 'px';
+    el.style.fontSize = Math.max(10, (b.h / 100) * h * (b.size || fallback)) + 'px';
   };
   set('#time', 'timer', 0.82);
   set('#tod', 'tod', 0.7);
@@ -263,8 +271,13 @@ function paint(d) {
     document.body.classList.remove('flashing');
     $('sub').textContent = showDetail ? 'Timer not running' : '';
   }
-  if (d.arrowStyle && d.arrowStyle !== shownStyle) { shownStyle = d.arrowStyle; paintArrows(d.arrowStyle); }
-  if (typeof d.arrowStacked === 'boolean' && d.arrowStacked !== shownStacked) { shownStacked = d.arrowStacked; applyLayout(d.arrowStacked); }
+  if (flag('debug', false)) {
+    $('state').textContent = `style ${d.remoteArrow || d.arrowStyle || '—'} · stacked ${d.remoteStacked} · shown ${shownStyle}/${shownStacked}`;
+  }
+  const wantStyle = d.remoteArrow || d.arrowStyle;
+  if (wantStyle && wantStyle !== shownStyle) { shownStyle = wantStyle; paintArrows(wantStyle); }
+  const wantStacked = typeof d.remoteStacked === 'boolean' ? d.remoteStacked : d.arrowStacked;
+  if (typeof wantStacked === 'boolean' && wantStacked !== shownStacked) { shownStacked = wantStacked; applyLayout(wantStacked); }
   if (d.layout) applyRemoteLayout(d.layout);
   $('slideNum').textContent = d.slide != null ? d.slide : 0;
 
