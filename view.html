@@ -59,7 +59,9 @@ body.hide-timer #time,body.hide-timer #sub{display:none}
 .arrows.stacked .cue-arrow.next{transform:translate(3%,-4%)}
 .arrows.stacked .cue-arrow.back{transform:translate(5%,0)}
 
-.cue-arrow polygon,.cue-arrow path,.cue-arrow circle{opacity:.4}
+.cue-arrow polygon,.cue-arrow path,.cue-arrow circle{opacity:.4;transition:opacity .22s ease}
+.cue-arrow.lit polygon,.cue-arrow.lit path,.cue-arrow.lit circle{opacity:1;transition:none;animation:none !important}
+.cue-arrow.lit text{opacity:1}
 .cue-arrow.next polygon,.cue-arrow.next path,.cue-arrow.next circle{fill:var(--green)}
 .cue-arrow.back polygon,.cue-arrow.back path,.cue-arrow.back circle{fill:var(--red)}
 .cue-arrow text{opacity:.45;font-size:66px}
@@ -305,12 +307,22 @@ function paint(d) {
 }
 
 function flash(type) {
+  const now = Date.now();
   document.querySelectorAll('.cue-arrow.' + type).forEach(el => {
-    el.classList.remove('fire');
-    void el.offsetWidth;
-    el.classList.add('fire');
+    const rapid = now - (el._last || 0) < 800;
+    el._last = now;
     clearTimeout(el._t);
-    el._t = setTimeout(() => el.classList.remove('fire'), 1600);
+    if (rapid) {
+      el.classList.remove('fire');
+      el.classList.add('lit');
+      el._t = setTimeout(() => el.classList.remove('lit'), 130);
+    } else {
+      el.classList.remove('lit');
+      el.classList.remove('fire');
+      void el.offsetWidth;
+      el.classList.add('fire');
+      el._t = setTimeout(() => el.classList.remove('fire'), 900);
+    }
   });
 }
 
