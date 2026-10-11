@@ -210,7 +210,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 47</span></h1>
+  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 50</span></h1>
   <span class="pill"><span class="dot" id="dot"></span><span id="status">Cues: not connected</span></span>
   <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
   <button class="primary" id="connect">Connect a dongle</button>
@@ -299,23 +299,6 @@ body.popout .win header{display:none}
     <div class="grip"></div>
   </section>
 
-  <section class="win" id="win-stats" style="left:310px;top:360px;width:270px;height:230px">
-    <header><span class="name">Pace</span><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
-    <div class="body">
-      <div class="stat"><span>On this slide</span><span id="sHold">—</span></div>
-      <div class="stat"><span>Cues</span><span id="sTotal">0</span></div>
-      <div class="stat"><span>Average</span><span id="sAvg">—</span></div>
-      <div class="stat"><span>Longest</span><span id="sMax">—</span></div>
-    </div>
-    <div class="grip"></div>
-  </section>
-
-  <section class="win" id="win-log" style="left:600px;top:290px;width:420px;height:300px">
-    <header><span class="name">Cue log</span><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
-    <div class="body"><div id="log"><div class="empty">Waiting for the first cue.</div></div></div>
-    <div class="grip"></div>
-  </section>
-
   <section class="win" id="win-remote" style="left:1040px;top:20px;width:340px;height:300px">
     <header><span class="name">Remote link</span><button class="mini" title="Minimize">&minus;</button></header>
     <div class="body" id="remote">
@@ -396,6 +379,21 @@ body.popout .win header{display:none}
         <div class="rlbox" data-k="slide">Slide</div>
       </div>
       <p style="margin:6px 0 0;font-size:12px;color:var(--dim)">Drag to move, corner to resize, double-click to hide or show.</p>
+      <div class="row" style="justify-content:flex-start;margin-top:6px;gap:8px;flex-wrap:wrap">
+        <label style="font-size:12px;color:var(--dim);display:flex;align-items:center;gap:5px">Remote arrows
+          <select id="rlArrowStyle" style="background:#131920;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font:inherit">
+            <option value="same">Same as console</option>
+            <option value="classic">Classic</option>
+            <option value="chase">Chase</option>
+            <option value="star">Stars</option>
+            <option value="pointer">Finger</option>
+            <option value="bulbs">Bulbs</option>
+          </select>
+        </label>
+        <label style="font-size:12px;color:var(--dim);display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="checkbox" id="rlStacked"> Stacked
+        </label>
+      </div>
       <div class="row" style="justify-content:flex-start;margin-top:6px">
         <button id="rlReset">Reset</button>
         <button id="rlPreview">Preview</button>
@@ -424,7 +422,7 @@ const popoutPanel = params.get('panel');
 const channel = new BroadcastChannel('tcg-cue-console');
 
 const state = {
-  slide: 0, total: 0, log: [], holds: [], lastCueAt: null,
+  slide: 0, total: 0, lastCue: null, lastCueAt: null,
   connected: false, timerConnected: false, live: null
 };
 
@@ -494,6 +492,8 @@ function loadSaved() {
     if (saved.ros && Array.isArray(saved.ros.items)) ros = Object.assign({ items: [], current: -1, startedAt: null }, saved.ros, { startedAt: null, current: -1 });
     if (typeof saved.locked === 'boolean') locked = saved.locked;
     if (saved.rlayout) Object.keys(RL_DEFAULT).forEach(k => { if (saved.rlayout[k]) rlayout[k] = saved.rlayout[k]; });
+    if (saved.rlArrow && $('rlArrowStyle')) $('rlArrowStyle').value = saved.rlArrow;
+    if (typeof saved.rlStacked === 'boolean' && $('rlStacked')) $('rlStacked').checked = saved.rlStacked;
     if (typeof saved.clock24 === 'boolean') clock24 = saved.clock24;
     if (typeof saved.clockSeconds === 'boolean') clockSeconds = saved.clockSeconds;
     if (saved.camUrl && $('camUrl')) $('camUrl').value = saved.camUrl;
@@ -512,6 +512,8 @@ function save() {
                        min: w.dataset.min === '1', clear: w.classList.contains('clear') };
     });
     localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, showDetails, clock24, clockSeconds, selectedProgram, message, ros, locked, rlayout,
+      rlArrow: $('rlArrowStyle') ? $('rlArrowStyle').value : 'same',
+      rlStacked: $('rlStacked') ? $('rlStacked').checked : false,
       camUrl: $('camUrl') ? $('camUrl').value.trim() : '', camMode: $('camMode') ? $('camMode').value : 'snapshot',
       dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey,
       showName: $('showName') ? $('showName').value.trim() : '', viewerOpts: viewerOptions() }));
@@ -845,22 +847,7 @@ function render() {
     $('dotT').classList.toggle('on', !!state.live);
     $('statusT').textContent = state.live ? 'Timer: live' : (state.timerConnected ? 'Timer: waiting for data' : 'Timer: not connected');
   }
-  if ($('log')) {
-    $('log').innerHTML = state.log.length
-      ? state.log.slice(-200).reverse().map(e =>
-          `<div><span class="t">${clockOf(e.at)}</span><span class="${e.type}">${e.type === 'next' ? 'Next' : 'Back'}</span>` +
-          `<span class="gap">slide ${e.slide}${e.gap != null ? ' · ' + duration(e.gap) : ''}</span></div>`).join('')
-      : '<div class="empty">Waiting for the first cue.</div>';
-  }
-  if ($('sTotal')) {
-    $('sTotal').textContent = state.total;
-    $('sHold').textContent = state.lastCueAt ? duration(Date.now() - state.lastCueAt) : '—';
-    const h = state.holds;
-    $('sAvg').textContent = h.length ? duration(h.reduce((a, b) => a + b, 0) / h.length) : '—';
-    $('sMax').textContent = h.length ? duration(Math.max(...h)) : '—';
-  }
 }
-setInterval(() => { if ($('sHold')) render(); }, 1000);
 
 function pulse(type) {
   document.querySelectorAll('.cue-arrow.' + type).forEach(svg => {
@@ -868,30 +855,41 @@ function pulse(type) {
     void svg.offsetWidth;
     svg.classList.add('fire');
     clearTimeout(svg._t);
-    svg._t = setTimeout(() => svg.classList.remove('fire'), 1600);
+    svg._t = setTimeout(() => svg.classList.remove('fire'), 900);
   });
 }
 
 /* ---------- Cues ---------- */
 let lastCode = null, lastAt = 0;
+let heavyTimer = null;
+function scheduleHeavy() {
+  if (heavyTimer) return;
+  heavyTimer = setTimeout(() => {
+    heavyTimer = null;
+    render();
+    save();
+    broadcast();
+    publish(true);
+  }, 180);
+}
+
 function applyCue(type) {
   const now = Date.now();
-  const gap = state.lastCueAt ? now - state.lastCueAt : null;
-  if (gap != null) state.holds.push(gap);
   state.slide = Math.max(0, state.slide + (type === 'next' ? 1 : -1));
   state.total++;
   state.lastCueAt = now;
-  state.log.push({ at: now, type, slide: state.slide, gap });
-  if (state.log.length > 400) state.log = state.log.slice(-400);
+  state.lastCue = { at: now, type, slide: state.slide };
+
+  // instant feedback only; the log, saving and sharing catch up a moment later
   pulse(type);
   playClick();
+  const count = $('slideCount');
+  if (count) count.textContent = state.slide;
   if ($('dot')) { $('dot').classList.add('flash'); setTimeout(() => $('dot').classList.remove('flash'), 120); }
   if (!popoutPanel) channel.postMessage({ type: 'cue', cue: type });
-  render();
-  save();
-  broadcast();
-  publish(true);
+  scheduleHeavy();
 }
+
 function onReport(bytes) {
   if (bytes.length < 6) return;
   if (!(bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f && bytes[3] === 0x01 && bytes[5] === 0x83)) return;
@@ -1225,12 +1223,13 @@ function initRlayout() {
       renderRlayout(); save(); publish(true);
     });
     el.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
       const b = rlayout[el.dataset.k];
       const rect = stage.getBoundingClientRect();
       const box = el.getBoundingClientRect();
       const resizing = (e.clientX > box.right - 14 && e.clientY > box.bottom - 14);
       const ox = e.clientX - box.left, oy = e.clientY - box.top;
-      el.setPointerCapture(e.pointerId);
       const move = ev => {
         if (resizing) {
           b.w = Math.max(5, Math.min(100 - b.x, ((ev.clientX - box.left) / rect.width) * 100));
@@ -1242,13 +1241,15 @@ function initRlayout() {
         renderRlayout();
       };
       const up = () => {
-        el.removeEventListener('pointermove', move);
-        el.removeEventListener('pointerup', up);
-        ['x','y','w','h'].forEach(k => { b[k] = Math.round(b[k] * 10) / 10; });
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', up);
+        ['x', 'y', 'w', 'h'].forEach(k => { b[k] = Math.round(b[k] * 10) / 10; });
         renderRlayout(); save(); publish(true);
       };
-      el.addEventListener('pointermove', move);
-      el.addEventListener('pointerup', up);
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', up);
     });
   });
   renderRlayout();
@@ -1323,6 +1324,8 @@ function publish(force) {
   lastPublish = now;
   const payload = {
     layout: rlayout,
+    remoteArrow: ($('rlArrowStyle') && $('rlArrowStyle').value !== 'same') ? $('rlArrowStyle').value : arrowStyle,
+    remoteStacked: $('rlStacked') ? $('rlStacked').checked : arrowStacked,
     message,
     ros: ros.current >= 0 && ros.items[ros.current] ? {
       now: ros.items[ros.current].name,
@@ -1331,7 +1334,7 @@ function publish(force) {
     } : null,
     live: state.live,
     slide: state.slide,
-    lastCue: state.log.length ? state.log[state.log.length - 1] : null,
+    lastCue: state.lastCue || null,
     connected: state.connected,
     arrowStyle,
     arrowStacked,
@@ -1539,7 +1542,7 @@ setNet('off');
     location.reload();
   });
   on('reset', 'click', () => {
-    state.slide = 0; state.total = 0; state.log = []; state.holds = []; state.lastCueAt = null;
+    state.slide = 0; state.total = 0; state.lastCue = null; state.lastCueAt = null;
     render(); save(); broadcast(); publish(true);
   });
   on('plus', 'click', () => applyCue('next'));
@@ -1615,6 +1618,8 @@ setNet('off');
   });
 
   on('lockUi', 'change', e => { locked = e.target.checked; applyLock(); save(); });
+  on('rlArrowStyle', 'change', () => { save(); publish(true); });
+  on('rlStacked', 'change', () => { save(); publish(true); });
   on('rlReset', 'click', () => { rlayout = JSON.parse(JSON.stringify(RL_DEFAULT)); renderRlayout(); save(); publish(true); });
   on('rlPreview', 'click', () => window.open(viewerLink(), '_blank', 'noopener'));
 
