@@ -131,6 +131,8 @@ const q = new URLSearchParams(location.search);
 const db = (q.get('db') || 'https://dsan-f12e2-default-rtdb.firebaseio.com').replace(/\/+$/, '');
 const key = q.get('k');
 const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const fmt = s => `${s < 0 ? '+' : ''}${Math.floor(Math.abs(Math.round(s))/60)}:${pad(Math.abs(Math.round(s))%60)}`;
 const flag = (name, def) => { const v = q.get(name); return v === null ? def : !(v === '0' || v === 'false' || v === 'no'); };
 if (flag('clear', false)) document.body.classList.add('clear');
 if (!flag('arrows', true)) document.body.classList.add('hide-arrows');
@@ -152,9 +154,6 @@ if (flag('tod', false)) {
   tick();
   setInterval(tick, 1000);
 }
-const pad = n => String(n).padStart(2, '0');
-const fmt = s => `${s < 0 ? '+' : ''}${Math.floor(Math.abs(Math.round(s))/60)}:${pad(Math.abs(Math.round(s))%60)}`;
-
 if (!db || !key) {
   $('state').textContent = 'bad link';
   $('sub').textContent = 'This link is missing its show details.';
