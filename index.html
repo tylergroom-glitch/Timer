@@ -875,6 +875,7 @@ function onReport(bytes) {
 
 /* ---------- Timer packets ---------- */
 let candidate = null, liveSeen = 0, lastKey = null;
+let lastParsed = '', lastReject = '';
 let autoProgram = 0;
 let selectedProgram = 'auto';
 function onTimerReport(role, bytes) {
@@ -923,7 +924,9 @@ function applyLive(b) {
       elapsed: b[o + 6] * 128 + b[o + 7]
     });
   }
-  if (programs.some(p => p.total > 86400 || p.elapsed > 86400)) return;
+  lastParsed = programs.map(p => `${Math.floor(p.total/60)}:${pad(p.total%60)}`).join(' ') +
+    ` | sel ${b[5]} | el ${programs[0].elapsed}`;
+  if (programs.some(p => p.total > 86400 || p.elapsed > 86400)) { lastReject = 'out of range'; return; }
   const selected = b[5] >= 0 && b[5] <= 3 ? b[5] : 0;
   // flags live one block ahead of the times: P1 at byte 6, P2 at 17, P3 at 28, P4 at 39
   const allFlags = [0, 1, 2, 3].map(k => b[6 + 11 * k] || 0);
@@ -946,7 +949,8 @@ function applyLive(b) {
 
   const key = programs.map(p => `${p.total},${p.yellow},${p.elapsed}`).join('|') + '|' + selected + '|' + allFlags.join(',');
   const same = key === lastKey;
-  if (!same && candidate !== key) { candidate = key; return; }
+  if (!same && candidate !== key) { candidate = key; lastReject = 'waiting for repeat'; return; }
+  lastReject = '';
   candidate = key;
 
   // the timer counts up while it runs, so a moving clock means running
@@ -1167,6 +1171,7 @@ setInterval(() => {
     return `<div>#${i + 1} role ${r.kind || 'unknown'} · reports ${r.count || 0} (${age})<br>` +
       `&nbsp;&nbsp;mode sent: ${sent}${r.sendErr ? ' · ERROR ' + r.sendErr : ' · ok'}<br>` +
       `&nbsp;&nbsp;last: ${r.last || '—'}<br>` +
+      (r.kind === 'timer' ? `&nbsp;&nbsp;parsed: ${lastParsed || '—'}<br>&nbsp;&nbsp;state: ${state.live ? 'live' : 'none'}${lastReject ? ' · ' + lastReject : ''}<br>` : '') +
       `&nbsp;&nbsp;headers ${r.hdr || 0} · packets ${r.ok || 0} · short ${r.short || 0} · len ${r.pktLen || '—'}` +
       `${r.hdrByte !== undefined ? ' · type ' + r.hdrByte.toString(16) : ''}<br>` +
       (r.sample ? `<div style="color:var(--dim);word-break:break-all;margin:2px 0 4px">${r.sample}</div>` : '') +
