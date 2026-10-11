@@ -230,7 +230,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 55</span></h1>
+  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 56</span></h1>
   <span class="pill"><span class="dot" id="dot"></span><span id="status">Cues: not connected</span></span>
   <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
   <button class="primary" id="connect">Connect a dongle</button>
@@ -939,14 +939,18 @@ function applyCue(type) {
   scheduleHeavy();
 }
 
+let cueFrames = 0, cueApplied = 0, cueDropped = 0;
 function onReport(bytes) {
   if (bytes.length < 6) return;
-  if (!(bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f && bytes[3] === 0x01 && bytes[5] === 0x83)) return;
+  // accept any press frame from the cue dongle, not just the exact shape seen before
+  if (!(bytes[1] === 0x81 && bytes[2] === 0x0f)) return;
   const code = bytes[4];
   if (code !== 0 && code !== 1) return;
+  cueFrames++;
   const now = Date.now();
-  if (code === lastCode && now - lastAt < DEBOUNCE_MS) return;
+  if (code === lastCode && now - lastAt < DEBOUNCE_MS) { cueDropped++; return; }
   lastCode = code; lastAt = now;
+  cueApplied++;
   applyCue(code === 0 ? 'next' : 'back');
 }
 
@@ -1543,7 +1547,8 @@ setInterval(() => {
   box.innerHTML = roles.map((r, i) => {
     const age = r.lastAt ? Math.round((Date.now() - r.lastAt) / 1000) + 's ago' : 'never';
     const kind = r.kind === 'timer' ? 'speaker timer' : r.kind === 'cue' ? 'cue system' : 'identifying…';
-    return `<div>#${i + 1} · ${kind} · ${r.count ? 'receiving' : 'no data'} (${age})<br>` +
+    const cueInfo = r.kind === 'cue' ? `<br>&nbsp;&nbsp;presses ${cueFrames} · used ${cueApplied} · ignored ${cueDropped}` : '';
+    return `<div>#${i + 1} · ${kind} · ${r.count ? 'receiving' : 'no data'} (${age})${cueInfo}<br>` +
       `&nbsp;&nbsp;<button class="setrole" data-i="${i}" data-k="timer">Use as timer</button> ` +
       `<button class="setrole" data-i="${i}" data-k="cue">Use as cue</button></div>`;
   }).join('');
