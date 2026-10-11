@@ -177,6 +177,7 @@ if (!db || !key) {
 }
 
 let lastCueAt = 0;
+let lastSeq = null;
 let appliedLayout = null;
 
 function applyRemoteLayout(layout) {
@@ -300,7 +301,18 @@ function paint(d) {
         ` · ${label === 'on time' ? 'on time' : mins + ' ' + label}`;
     } else ros.innerHTML = '';
   }
-  if (d.lastCue && d.lastCue.at && d.lastCue.at !== lastCueAt) {
+  // replay every press, not just the newest one
+  if (typeof d.cueSeq === 'number') {
+    if (lastSeq === null) lastSeq = d.cueSeq;
+    else if (d.cueSeq > lastSeq) {
+      const missed = Math.min(d.cueSeq - lastSeq, 6);
+      lastSeq = d.cueSeq;
+      const type = d.lastCue ? d.lastCue.type : 'next';
+      for (let i = 0; i < missed; i++) setTimeout(() => flash(type), i * 150);
+    } else if (d.cueSeq < lastSeq) {
+      lastSeq = d.cueSeq;   // the console was reset
+    }
+  } else if (d.lastCue && d.lastCue.at && d.lastCue.at !== lastCueAt) {
     lastCueAt = d.lastCue.at;
     if (Date.now() - d.lastCue.at < 8000) flash(d.lastCue.type);
   }
