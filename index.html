@@ -999,14 +999,18 @@ async function attach(d) {
     role.lastAt = Date.now();
     if (bytes.some(x => x !== 0)) {
       role.sawData = Date.now();
-      // not a cue press, but not silent either: this is the timer in the wrong mode
-      if (role.kind === 'cue' && !(bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f)) {
+      // a dongle that has never sent a cue press, but chatters, is a timer in the wrong mode
+      if (role.kind === 'cue' && !role.sawCue && !(bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f)) {
         role.junk = (role.junk || 0) + 1;
-        if (role.junk > 20) { role.junk = 0; role.kind = null; sendMode(role.device, 0x00, role); probe(role); }
+        if (role.junk > 40) { role.junk = 0; role.kind = null; sendMode(role.device, 0x00, role); probe(role); }
       }
     }
     // a cue press identifies itself instantly, whatever we thought before
     if (bytes[0] === 0x05 && bytes[1] === 0x81 && bytes[2] === 0x0f) {
+      role.sawCue = true;
+      role.junk = 0;
+      clearInterval(role.probeTimer);
+      role.probeTimer = null;
       if (role.kind !== 'cue') { role.kind = 'cue'; state.connected = true; render(); broadcast(); }
       role.lastSeen = Date.now();
       return onReport(bytes);
@@ -1026,7 +1030,7 @@ function probe(role) {
   sendMode(role.device, 0x00, role);
   clearInterval(role.probeTimer);
   role.probeTimer = setInterval(() => {
-    if (role.kind === 'timer') { clearInterval(role.probeTimer); role.probeTimer = null; return; }
+    if (role.kind === 'timer' || role.sawCue) { clearInterval(role.probeTimer); role.probeTimer = null; return; }
     const busy = role.sawData && Date.now() - role.sawData < 5000;
     if (busy) {
       // real data but nothing parsed yet: keep it in timer mode and try again
