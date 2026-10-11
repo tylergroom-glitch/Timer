@@ -319,36 +319,12 @@ function paint(d) {
 }
 
 function flash(type) {
-  const now = Date.now();
   document.querySelectorAll('.cue-arrow.' + type).forEach(el => {
-    const rapid = now - (el._last || 0) < 800;
-    el._last = now;
     clearTimeout(el._t);
-    if (rapid) {
-      el.classList.remove('fire');
-      el.classList.add('lit');
-      el._t = setTimeout(() => el.classList.remove('lit'), 130);
-    } else {
-      el.classList.remove('lit');
-      el.classList.remove('fire');
-      void el.offsetWidth;
-      el.classList.add('fire');
-      el._t = setTimeout(() => el.classList.remove('fire'), 900);
-    }
+    el.classList.remove('fire');
+    el.classList.add('lit');
+    el._t = setTimeout(() => el.classList.remove('lit'), 160);
   });
-}
-
-function loadBackground() {
-  fetch(`${db}/shows/${key}/bg.json`, { cache: 'no-store' })
-    .then(r => r.json())
-    .then(d => {
-      const layer = document.getElementById('bgLayer');
-      if (!d) { layer.style.backgroundImage = ''; layer.style.backgroundColor = ''; return; }
-      if (typeof d === 'string') { layer.style.backgroundColor = ''; layer.style.backgroundImage = `url(${d})`; return; }
-      if (d.type === 'color') { layer.style.backgroundImage = ''; layer.style.backgroundColor = d.value; }
-      else { layer.style.backgroundColor = ''; layer.style.backgroundImage = `url(${d.value})`; }
-    })
-    .catch(() => {});
 }
 
 function start() {
