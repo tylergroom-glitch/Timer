@@ -875,7 +875,7 @@ function onReport(bytes) {
 
 /* ---------- Timer packets ---------- */
 let candidate = null, liveSeen = 0, lastKey = null;
-let lastParsed = '', lastReject = '', liveSets = 0, liveSnapshot = '';
+let lastParsed = '', lastReject = '', liveSets = 0, liveSnapshot = '', gateSkips = 0, errCount = 0;
 let autoProgram = 0;
 let selectedProgram = 'auto';
 function onTimerReport(role, bytes) {
@@ -947,10 +947,9 @@ function applyLive(b) {
     if (state.live) renderTimer();
   }
 
-  const key = programs.map(p => `${p.total},${p.yellow},${p.elapsed}`).join('|') + '|' + selected + '|' + allFlags.join(',');
+  const key = programs.map(p => `${p.total},${p.yellow},${p.elapsed}`).join('|') + '|' + selected;
   const same = key === lastKey;
-  if (!same && candidate !== key) { candidate = key; lastReject = 'waiting for repeat'; return; }
-  lastReject = '';
+  if (!same && candidate !== key) { candidate = key; gateSkips++; return; }
   candidate = key;
 
   try {
@@ -971,6 +970,7 @@ function applyLive(b) {
     liveSets++;
     liveSnapshot = `${p.total}s pick ${pickIndex} sel ${selectedProgram}`;
   } catch (err) {
+    errCount++;
     lastReject = 'error: ' + ((err && err.message) || err);
     return;
   }
@@ -1181,7 +1181,7 @@ setInterval(() => {
     return `<div>#${i + 1} role ${r.kind || 'unknown'} · reports ${r.count || 0} (${age})<br>` +
       `&nbsp;&nbsp;mode sent: ${sent}${r.sendErr ? ' · ERROR ' + r.sendErr : ' · ok'}<br>` +
       `&nbsp;&nbsp;last: ${r.last || '—'}<br>` +
-      (r.kind === 'timer' ? `&nbsp;&nbsp;parsed: ${lastParsed || '—'}<br>&nbsp;&nbsp;state: ${state.live ? 'live' : 'none'} · sets ${liveSets} · ${liveSnapshot || '—'}${lastReject ? ' · ' + lastReject : ''}<br>` : '') +
+      (r.kind === 'timer' ? `&nbsp;&nbsp;parsed: ${lastParsed || '—'}<br>&nbsp;&nbsp;state: ${state.live ? 'live' : 'none'} · sets ${liveSets} · skips ${gateSkips} · errs ${errCount}<br>&nbsp;&nbsp;${liveSnapshot || '—'}${lastReject ? ' · ' + lastReject : ''}<br>` : '') +
       `&nbsp;&nbsp;headers ${r.hdr || 0} · packets ${r.ok || 0} · short ${r.short || 0} · len ${r.pktLen || '—'}` +
       `${r.hdrByte !== undefined ? ' · type ' + r.hdrByte.toString(16) : ''}<br>` +
       (r.sample ? `<div style="color:var(--dim);word-break:break-all;margin:2px 0 4px">${r.sample}</div>` : '') +
