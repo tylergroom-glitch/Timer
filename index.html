@@ -389,7 +389,7 @@ const VID = 0x0483, PID = 0x101a;
 // DSAN dongles have shown up under more than one product id
 const isDsan = d => d.vendorId === VID && (d.productId === 0x101a || d.productId === 0x2080 ||
   /dsan|videoclock/i.test((d.productName || '') + (d.manufacturerName || '')));
-const DEBOUNCE_MS = 90;
+const DEBOUNCE_MS = 10;
 const params = new URLSearchParams(location.search);
 const popoutPanel = params.get('panel');
 const channel = new BroadcastChannel('tcg-cue-console');
