@@ -20,6 +20,7 @@ body.laid-out{display:block;padding:0}
 body.laid-out #tod,body.laid-out #time,body.laid-out .arrows,
 body.laid-out #slide,body.laid-out #msg,body.laid-out #ros{
   position:absolute;margin:0;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
+body.laid-out #msg,body.laid-out #ros{white-space:normal}
 body.laid-out #sub{display:none}
 body.laid-out .arrows{gap:3%;width:auto}
 body.laid-out .arrows svg{width:auto;height:100%;max-width:48%;transform:none;margin:0}
@@ -124,7 +125,7 @@ body.hide-timer #time,body.hide-timer #sub{display:none}
 
 #slide{font-size:clamp(14px,2.4vh,19px);color:var(--dim)}
 #slide b{color:var(--text);font-weight:500}
-#msg{display:none;color:var(--amber);font-weight:500;text-align:center;line-height:1.2;
+#msg{display:none;color:var(--amber);font-weight:500;text-align:center;line-height:1.15;word-break:break-word;
   font-size:clamp(20px,5vh,54px);padding:0 4vw;margin-top:1vh}
 #msg.on{display:block}
 #ros{color:var(--dim);font-size:clamp(12px,2.2vh,18px);margin-top:.5vh}
@@ -261,21 +262,29 @@ function applyRemoteLayout(layout) {
   sizeText();
 }
 
-// scale type to the box it sits in
+// scale type to the box it sits in, then shrink it until it also fits the width
+function fitText(sel, k, fallback) {
+  const el = document.querySelector(sel);
+  const b = appliedLayout[k];
+  if (!el || !b || !b.on) return;
+  const h = window.innerHeight;
+  let size = Math.max(10, (b.h / 100) * h * (b.size || fallback));
+  el.style.fontSize = size + 'px';
+  el.style.whiteSpace = 'nowrap';
+  for (let i = 0; i < 24 && size > 9; i++) {
+    if (el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1) break;
+    size *= 0.92;
+    el.style.fontSize = size + 'px';
+  }
+}
+
 function sizeText() {
   if (!appliedLayout) return;
-  const h = window.innerHeight;
-  const set = (sel, k, fallback) => {
-    const el = document.querySelector(sel);
-    const b = appliedLayout[k];
-    if (!el || !b || !b.on) return;
-    el.style.fontSize = Math.max(10, (b.h / 100) * h * (b.size || fallback)) + 'px';
-  };
-  set('#time', 'timer', 0.82);
-  set('#tod', 'tod', 0.7);
-  set('#msg', 'message', 0.5);
-  set('#ros', 'nownext', 0.55);
-  set('#slide', 'slide', 0.5);
+  fitText('#time', 'timer', 0.82);
+  fitText('#tod', 'tod', 0.7);
+  fitText('#msg', 'message', 0.5);
+  fitText('#ros', 'nownext', 0.55);
+  fitText('#slide', 'slide', 0.5);
 }
 window.addEventListener('resize', sizeText);
 let shownStyle = null;
@@ -324,7 +333,8 @@ function paint(d) {
     const over = left < 0;
     if (d.stopAtZero && over) left = 0;
     $('time').textContent = fmt(left);
-    $('time').className = left <= 0 ? (over && !d.stopAtZero ? 'red over' : 'red') : left <= live.yellow ? 'amber' : 'green';
+    const blinkNow = !!d.flashAtZero && left <= 0;
+    $('time').className = left <= 0 ? (blinkNow ? 'red over' : 'red') : left <= live.yellow ? 'amber' : 'green';
     document.body.classList.toggle('flashing', left <= 0 && !!d.flashAtZero);
     $('sub').textContent = showDetail
       ? `${live.program ? 'Program ' + live.program + ' · ' : ''}Set ${fmt(live.total)} · ${live.running ? 'running' : 'stopped'}${live.blink ? ' · BLINK' : ''}${live.beep ? ' · BEEP' : ''}`
@@ -343,6 +353,7 @@ function paint(d) {
   const wantStacked = typeof d.remoteStacked === 'boolean' ? d.remoteStacked : d.arrowStacked;
   if (typeof wantStacked === 'boolean' && wantStacked !== shownStacked) { shownStacked = wantStacked; applyLayout(wantStacked); }
   if (d.layout) applyRemoteLayout(d.layout);
+  requestAnimationFrame(sizeText);
   $('slideNum').textContent = d.slide != null ? d.slide : 0;
 
   const msg = $('msg');
