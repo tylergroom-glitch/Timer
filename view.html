@@ -9,6 +9,12 @@
 <style>
 :root{--bg:#10151C;--text:#DCE2E8;--dim:#8C98A5;--green:#3FB950;--amber:#E3B341;--red:#F85149;--line:#2C3542}
 *{box-sizing:border-box}
+#gate{display:none;position:fixed;inset:0;background:#10151C;z-index:50;align-items:center;justify-content:center}
+#gate.on{display:flex}
+.gatebox{text-align:center;max-width:320px;width:86%}
+.gatebox input{width:100%;font:inherit;padding:10px 12px;border-radius:8px;border:1px solid #2C3542;background:#131920;color:var(--text);margin-bottom:10px}
+.gatebox button{width:100%;font:inherit;padding:10px 12px;border-radius:8px;border:0;background:#1F4E8C;color:#fff;cursor:pointer}
+#gateMsg{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
 #bgLayer{position:fixed;inset:0;background-size:cover;background-position:center;z-index:-1}
 body.laid-out{display:block;padding:0}
 body.laid-out #tod,body.laid-out #time,body.laid-out .arrows,
@@ -72,7 +78,7 @@ body.hide-timer #time,body.hide-timer #sub{display:none}
   mask-image:linear-gradient(90deg,#000 0 48%,transparent 78%);
   -webkit-mask-size:230% 100%;mask-size:230% 100%;
   -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
-  animation:lightUp .75s ease-out}
+  animation:lightUp .45s ease-out}
 @keyframes lightUp{
   0%{opacity:1;-webkit-mask-position:100% 0;mask-position:100% 0}
   50%{opacity:1;-webkit-mask-position:0% 0;mask-position:0% 0}
@@ -81,9 +87,9 @@ body.hide-timer #time,body.hide-timer #sub{display:none}
 
 /* chase: three chevrons in sequence */
 .cue-arrow.style-chase path{opacity:.45}
-.cue-arrow.style-chase.fire .ch1{animation:flare .8s ease-out 0s}
-.cue-arrow.style-chase.fire .ch2{animation:flare .8s ease-out .12s}
-.cue-arrow.style-chase.fire .ch3{animation:flare .8s ease-out .24s}
+.cue-arrow.style-chase.fire .ch1{animation:flare .5s ease-out 0s}
+.cue-arrow.style-chase.fire .ch2{animation:flare .5s ease-out .07s}
+.cue-arrow.style-chase.fire .ch3{animation:flare .5s ease-out .14s}
 @keyframes flare{0%{opacity:.45}12%{opacity:1}65%{opacity:1}100%{opacity:.45}}
 
 /* bulbs: lamp array that lights column by column */
@@ -91,18 +97,18 @@ body.hide-timer #time,body.hide-timer #sub{display:none}
 .cue-arrow.style-bulbs .gloss{fill:#fff !important;opacity:.13}
 .cue-arrow.style-bulbs.fire .gloss{animation:gloss .85s ease-out}
 @keyframes gloss{0%{opacity:.13}10%{opacity:.5}65%{opacity:.45}100%{opacity:.13}}
-.cue-arrow.style-bulbs.fire .b1 circle{animation:lamp .9s ease-out 0.000s}
-.cue-arrow.style-bulbs.fire .b2 circle{animation:lamp .9s ease-out 0.055s}
-.cue-arrow.style-bulbs.fire .b3 circle{animation:lamp .9s ease-out 0.110s}
-.cue-arrow.style-bulbs.fire .b4 circle{animation:lamp .9s ease-out 0.165s}
-.cue-arrow.style-bulbs.fire .b5 circle{animation:lamp .9s ease-out 0.220s}
-.cue-arrow.style-bulbs.fire .b6 circle{animation:lamp .9s ease-out 0.275s}
-.cue-arrow.style-bulbs.fire .b7 circle{animation:lamp .9s ease-out 0.330s}
+.cue-arrow.style-bulbs.fire .b1 circle{animation:lamp .5s ease-out 0.000s}
+.cue-arrow.style-bulbs.fire .b2 circle{animation:lamp .5s ease-out 0.030s}
+.cue-arrow.style-bulbs.fire .b3 circle{animation:lamp .5s ease-out 0.061s}
+.cue-arrow.style-bulbs.fire .b4 circle{animation:lamp .5s ease-out 0.091s}
+.cue-arrow.style-bulbs.fire .b5 circle{animation:lamp .5s ease-out 0.121s}
+.cue-arrow.style-bulbs.fire .b6 circle{animation:lamp .5s ease-out 0.151s}
+.cue-arrow.style-bulbs.fire .b7 circle{animation:lamp .5s ease-out 0.182s}
 @keyframes lamp{0%{opacity:.3}10%{opacity:1}65%{opacity:1}100%{opacity:.3}}
 
 /* star: pops and spins */
 .cue-arrow.style-star .shape{transform-box:fill-box;transform-origin:center}
-.cue-arrow.style-star.fire .shape{animation:starPop .75s cubic-bezier(.2,1.4,.4,1)}
+.cue-arrow.style-star.fire .shape{animation:starPop .5s cubic-bezier(.2,1.4,.4,1)}
 @keyframes starPop{0%{opacity:.4;transform:scale(.55) rotate(-35deg)}
   45%{opacity:1;transform:scale(1.12) rotate(8deg)}
   70%{opacity:1;transform:scale(1) rotate(0)}
@@ -110,7 +116,7 @@ body.hide-timer #time,body.hide-timer #sub{display:none}
 
 /* pointer: a finger that jabs */
 .cue-arrow.style-pointer .shape{transform-box:fill-box;transform-origin:center}
-.cue-arrow.style-pointer.fire .shape{animation:jab .75s ease-out}
+.cue-arrow.style-pointer.fire .shape{animation:jab .5s ease-out}
 @keyframes jab{0%{opacity:.45;transform:translateX(-14px) scale(.9)}
   35%{opacity:1;transform:translateX(10px) scale(1.12)}
   65%{opacity:1;transform:translateX(0) scale(1)}
@@ -130,6 +136,12 @@ body.hide-extras #msg,body.hide-extras #ros{display:none}
 <body>
 <div id="bgLayer"></div>
 <div id="state">connecting…</div>
+<div id="gate"><div class="gatebox">
+  <div style="font-size:15px;margin-bottom:10px">Enter the passcode for this show</div>
+  <input id="gatePass" type="text" autocomplete="off" spellcheck="false" placeholder="Passcode">
+  <button id="gateGo">Watch</button>
+  <div id="gateMsg"></div>
+</div></div>
 <div id="tod"></div>
 <div id="time">--:--</div>
 <div id="sub"></div>
@@ -173,12 +185,55 @@ if (flag('tod', false)) {
   tick();
   setInterval(tick, 1000);
 }
-if (!db || !key) {
-  $('state').textContent = 'bad link';
-  $('sub').textContent = 'This link is missing its show details.';
-} else {
-  start();
+let path = key;
+
+async function hashPass(text) {
+  const data = new TextEncoder().encode('tcg-cue:' + text);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 20);
 }
+
+async function unlock(pass, remember) {
+  const h = await hashPass(pass);
+  const candidate = `${key}-${h}`;
+  try {
+    const r = await fetch(`${db}/shows/${candidate}/state.json`, { cache: 'no-store' });
+    const d = await r.json();
+    if (d === null) return false;
+    path = candidate;
+    if (remember) { try { localStorage.setItem('cue-view-pass-' + key, pass); } catch {} }
+    return true;
+  } catch { return false; }
+}
+
+async function begin() {
+  if (!db || !key) {
+    $('state').textContent = 'bad link';
+    return;
+  }
+  if (q.get('lock') !== '1') { start(); return; }
+
+  let saved = '';
+  try { saved = localStorage.getItem('cue-view-pass-' + key) || ''; } catch {}
+  if (saved && await unlock(saved, false)) { start(); return; }
+
+  $('gate').classList.add('on');
+  const tryIt = async () => {
+    const value = $('gatePass').value.trim();
+    if (!value) return;
+    $('gateMsg').textContent = 'Checking…';
+    if (await unlock(value, true)) {
+      $('gate').classList.remove('on');
+      start();
+    } else {
+      $('gateMsg').textContent = 'That passcode did not work.';
+    }
+  };
+  $('gateGo').addEventListener('click', tryIt);
+  $('gatePass').addEventListener('keydown', e => { if (e.key === 'Enter') tryIt(); });
+  $('gatePass').focus();
+}
+begin();
 
 let lastCueAt = 0;
 let lastSeq = null;
@@ -323,16 +378,28 @@ function paint(d) {
 }
 
 function flash(type) {
+  const now = Date.now();
+  const staged = shownStyle === 'chase' || shownStyle === 'bulbs';
   document.querySelectorAll('.cue-arrow.' + type).forEach(el => {
+    const rapid = now - (el._last || 0) < 600;
+    el._last = now;
     clearTimeout(el._t);
-    el.classList.remove('fire');
-    el.classList.add('lit');
-    el._t = setTimeout(() => el.classList.remove('lit'), 160);
+    if (staged && !rapid) {
+      el.classList.remove('lit');
+      el.classList.remove('fire');
+      void el.offsetWidth;
+      el.classList.add('fire');
+      el._t = setTimeout(() => el.classList.remove('fire'), 600);
+    } else {
+      el.classList.remove('fire');
+      el.classList.add('lit');
+      el._t = setTimeout(() => el.classList.remove('lit'), 160);
+    }
   });
 }
 
 function loadBackground() {
-  fetch(`${db}/shows/${key}/bg.json`, { cache: 'no-store' })
+  fetch(`${db}/shows/${path}/bg.json`, { cache: 'no-store' })
     .then(r => r.json())
     .then(d => {
       const layer = document.getElementById('bgLayer');
@@ -361,7 +428,7 @@ function loadBackground() {
 function start() {
   loadBackground();
   setInterval(loadBackground, 8000);
-  const url = `${db}/shows/${key}/state.json`;
+  const url = `${db}/shows/${path}/state.json`;
   let es;
   try {
     es = new EventSource(url);
@@ -383,7 +450,7 @@ function start() {
 }
 
 function poll() {
-  const url = `${db}/shows/${key}/state.json`;
+  const url = `${db}/shows/${path}/state.json`;
   fetch(url, { cache: 'no-store' })
     .then(r => {
       if (!r.ok) throw new Error('HTTP ' + r.status);

@@ -120,7 +120,7 @@ body.hide-details #tSource,body.hide-details #progRow{display:none}
   mask-image:linear-gradient(90deg,#000 0 48%,transparent 78%);
   -webkit-mask-size:230% 100%;mask-size:230% 100%;
   -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
-  animation:lightUp .75s ease-out}
+  animation:lightUp .45s ease-out}
 @keyframes lightUp{
   0%{opacity:1;-webkit-mask-position:100% 0;mask-position:100% 0}
   50%{opacity:1;-webkit-mask-position:0% 0;mask-position:0% 0}
@@ -129,9 +129,9 @@ body.hide-details #tSource,body.hide-details #progRow{display:none}
 
 /* chase: three chevrons in sequence */
 .cue-arrow.style-chase path{opacity:.45}
-.cue-arrow.style-chase.fire .ch1{animation:flare .8s ease-out 0s}
-.cue-arrow.style-chase.fire .ch2{animation:flare .8s ease-out .12s}
-.cue-arrow.style-chase.fire .ch3{animation:flare .8s ease-out .24s}
+.cue-arrow.style-chase.fire .ch1{animation:flare .5s ease-out 0s}
+.cue-arrow.style-chase.fire .ch2{animation:flare .5s ease-out .07s}
+.cue-arrow.style-chase.fire .ch3{animation:flare .5s ease-out .14s}
 @keyframes flare{0%{opacity:.45}12%{opacity:1}65%{opacity:1}100%{opacity:.45}}
 
 /* bulbs: lamp array that lights column by column */
@@ -139,18 +139,18 @@ body.hide-details #tSource,body.hide-details #progRow{display:none}
 .cue-arrow.style-bulbs .gloss{fill:#fff !important;opacity:.13}
 .cue-arrow.style-bulbs.fire .gloss{animation:gloss .85s ease-out}
 @keyframes gloss{0%{opacity:.13}10%{opacity:.5}65%{opacity:.45}100%{opacity:.13}}
-.cue-arrow.style-bulbs.fire .b1 circle{animation:lamp .9s ease-out 0.000s}
-.cue-arrow.style-bulbs.fire .b2 circle{animation:lamp .9s ease-out 0.055s}
-.cue-arrow.style-bulbs.fire .b3 circle{animation:lamp .9s ease-out 0.110s}
-.cue-arrow.style-bulbs.fire .b4 circle{animation:lamp .9s ease-out 0.165s}
-.cue-arrow.style-bulbs.fire .b5 circle{animation:lamp .9s ease-out 0.220s}
-.cue-arrow.style-bulbs.fire .b6 circle{animation:lamp .9s ease-out 0.275s}
-.cue-arrow.style-bulbs.fire .b7 circle{animation:lamp .9s ease-out 0.330s}
+.cue-arrow.style-bulbs.fire .b1 circle{animation:lamp .5s ease-out 0.000s}
+.cue-arrow.style-bulbs.fire .b2 circle{animation:lamp .5s ease-out 0.030s}
+.cue-arrow.style-bulbs.fire .b3 circle{animation:lamp .5s ease-out 0.061s}
+.cue-arrow.style-bulbs.fire .b4 circle{animation:lamp .5s ease-out 0.091s}
+.cue-arrow.style-bulbs.fire .b5 circle{animation:lamp .5s ease-out 0.121s}
+.cue-arrow.style-bulbs.fire .b6 circle{animation:lamp .5s ease-out 0.151s}
+.cue-arrow.style-bulbs.fire .b7 circle{animation:lamp .5s ease-out 0.182s}
 @keyframes lamp{0%{opacity:.3}10%{opacity:1}65%{opacity:1}100%{opacity:.3}}
 
 /* star: pops and spins */
 .cue-arrow.style-star .shape{transform-box:fill-box;transform-origin:center}
-.cue-arrow.style-star.fire .shape{animation:starPop .75s cubic-bezier(.2,1.4,.4,1)}
+.cue-arrow.style-star.fire .shape{animation:starPop .5s cubic-bezier(.2,1.4,.4,1)}
 @keyframes starPop{0%{opacity:.4;transform:scale(.55) rotate(-35deg)}
   45%{opacity:1;transform:scale(1.12) rotate(8deg)}
   70%{opacity:1;transform:scale(1) rotate(0)}
@@ -158,7 +158,7 @@ body.hide-details #tSource,body.hide-details #progRow{display:none}
 
 /* pointer: a finger that jabs */
 .cue-arrow.style-pointer .shape{transform-box:fill-box;transform-origin:center}
-.cue-arrow.style-pointer.fire .shape{animation:jab .75s ease-out}
+.cue-arrow.style-pointer.fire .shape{animation:jab .5s ease-out}
 @keyframes jab{0%{opacity:.45;transform:translateX(-14px) scale(.9)}
   35%{opacity:1;transform:translateX(10px) scale(1.12)}
   65%{opacity:1;transform:translateX(0) scale(1)}
@@ -232,7 +232,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 63</span></h1>
+  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 67</span></h1>
   <span class="pill"><span class="dot" id="dot"></span><span id="status">Cues: not connected</span></span>
   <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
   <button class="primary" id="connect">Connect a dongle</button>
@@ -330,6 +330,7 @@ body.popout .win header{display:none}
     <div class="body" id="remote">
       <input id="dbUrl" type="url" placeholder="Firebase database URL" spellcheck="false">
       <input id="showName" type="text" placeholder="Show name, e.g. ballroom-a" spellcheck="false">
+      <input id="showPass" type="text" placeholder="Viewer passcode (optional)" spellcheck="false">
       <div class="row" style="justify-content:flex-start;gap:10px;flex-wrap:wrap;margin-top:4px">
         <label><input type="checkbox" class="vopt" data-k="tod" checked> Time of day</label>
         <label><input type="checkbox" class="vopt" data-k="timer" checked> Timer</label>
@@ -541,6 +542,7 @@ function loadSaved() {
     if (typeof saved.slide === 'number') state.slide = saved.slide;
     if ($('dbUrl')) $('dbUrl').value = saved.dbUrl || DEFAULT_DB;
     if (saved.showName && $('showName')) $('showName').value = saved.showName;
+    if (saved.showPass && $('showPass')) $('showPass').value = saved.showPass;
     if (saved.viewerOpts) document.querySelectorAll('.vopt').forEach(c => {
       if (saved.viewerOpts[c.dataset.k] !== undefined) c.checked = !!saved.viewerOpts[c.dataset.k];
     });
@@ -598,7 +600,8 @@ function save() {
       rlStacked: $('rlStacked') ? $('rlStacked').checked : false,
       camUrl: $('camUrl') ? $('camUrl').value.trim() : '', camMode: $('camMode') ? $('camMode').value : 'snapshot',
       dbUrl: $('dbUrl') ? $('dbUrl').value.trim() : '', showKey,
-      showName: $('showName') ? $('showName').value.trim() : '', viewerOpts: viewerOptions() }));
+      showName: $('showName') ? $('showName').value.trim() : '',
+      showPass: $('showPass') ? $('showPass').value.trim() : '', viewerOpts: viewerOptions() }));
   } catch {}
 }
 
@@ -936,11 +939,23 @@ function render() {
 }
 
 function pulse(type) {
+  const now = Date.now();
+  const staged = arrowStyle === 'chase' || arrowStyle === 'bulbs';
   document.querySelectorAll('.cue-arrow.' + type).forEach(svg => {
+    const rapid = now - (svg._last || 0) < 600;
+    svg._last = now;
     clearTimeout(svg._t);
-    svg.classList.remove('fire');
-    svg.classList.add('lit');
-    svg._t = setTimeout(() => svg.classList.remove('lit'), 160);
+    if (staged && !rapid) {
+      svg.classList.remove('lit');
+      svg.classList.remove('fire');
+      void svg.offsetWidth;
+      svg.classList.add('fire');
+      svg._t = setTimeout(() => svg.classList.remove('fire'), 600);
+    } else {
+      svg.classList.remove('fire');
+      svg.classList.add('lit');
+      svg._t = setTimeout(() => svg.classList.remove('lit'), 160);
+    }
   });
 }
 
@@ -1659,6 +1674,22 @@ function setNet(stateName) {
   label.textContent = stateName === 'on' ? 'Link: live' : stateName === 'error' ? 'Link: offline' : 'Link: off';
 }
 const DEFAULT_DB = 'https://dsan-f12e2-default-rtdb.firebaseio.com';
+
+// A passcode becomes part of the storage path, so without it there is nothing to read.
+let passPath = '';
+async function hashPass(text) {
+  if (!text) return '';
+  const data = new TextEncoder().encode('tcg-cue:' + text);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 20);
+}
+async function refreshPassPath() {
+  const pass = $('showPass') ? $('showPass').value.trim() : '';
+  passPath = pass ? await hashPass(pass) : '';
+  refreshLink();
+  publish(true);
+}
+function showPath() { return passPath ? `${showKey}-${passPath}` : showKey; }
 function viewerOptions() {
   const opts = {};
   document.querySelectorAll('.vopt').forEach(c => { opts[c.dataset.k] = c.checked; });
@@ -1674,7 +1705,7 @@ function viewerLink() {
   const o = viewerOptions();
   const flags = ['tod', 'timer', 'arrows', 'slide', 'extras', 'detail', 'clear']
     .map(k => `${k}=${o[k] ? 1 : 0}`).join('&');
-  return `${base}view.html?db=${encodeURIComponent(dbBase() || '')}&k=${showKey}&${flags}`;
+  return `${base}view.html?db=${encodeURIComponent(dbBase() || '')}&k=${showKey}&${flags}` + (passPath ? '&lock=1' : '');
 }
 function refreshLink() {
   if (!dbBase()) {
@@ -1719,7 +1750,7 @@ function publish(force) {
     flashAtZero,
     at: now
   };
-  fetch(`${dbBase()}/shows/${showKey}/state.json`, { method: 'PUT', body: JSON.stringify(payload) })
+  fetch(`${dbBase()}/shows/${showPath()}/state.json`, { method: 'PUT', body: JSON.stringify(payload) })
     .then(r => {
       netOk = r.ok;
       $('shareState').textContent = r.ok ? `Sharing · updated ${clockOf(Date.now())}` : `Share error ${r.status}`;
@@ -1736,7 +1767,7 @@ function publishBackground(bg) {
   if (!showKey) refreshLink();
   const size = bg && bg.value ? Math.round(JSON.stringify(bg).length / 1024) : 0;
   if ($('shareState')) $('shareState').textContent = size ? `Sending background (${size} KB)…` : 'Clearing background…';
-  fetch(`${dbBase()}/shows/${showKey}/bg.json`, { method: 'PUT', body: JSON.stringify(bg || null) })
+  fetch(`${dbBase()}/shows/${showPath()}/bg.json`, { method: 'PUT', body: JSON.stringify(bg || null) })
     .then(r => {
       if ($('shareState')) $('shareState').textContent = r.ok
         ? `Background sent${size ? ' (' + size + ' KB)' : ''}`
@@ -1839,6 +1870,7 @@ if (!popoutPanel) {
     if (bg) publishBackground(bg);
   });
   on('showName', 'change', () => { refreshLink(); publish(true); });
+  on('showPass', 'change', () => { refreshPassPath(); });
   document.querySelectorAll('.vopt').forEach(c => c.addEventListener('change', () => { refreshLink(); save(); }));
   on('openLink', 'click', () => window.open(viewerLink(), '_blank', 'noopener'));
   on('copyLink', 'click', () => {
@@ -2117,7 +2149,7 @@ renderClock();
 paintArrows(arrowStyle);
 applyLayout(arrowStacked);
 render();
-if (!popoutPanel) { refreshLink(); publish(true); }
+if (!popoutPanel) { refreshPassPath().then(() => {}); }
 </script>
 </body>
 </html>
