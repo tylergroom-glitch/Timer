@@ -342,12 +342,15 @@ function loadBackground() {
       if (d.type === 'color') { layer.style.backgroundImage = ''; layer.style.backgroundColor = d.value; }
       else { layer.style.backgroundColor = ''; layer.style.backgroundImage = `url(${d.value})`; }
     })
-    .catch(() => {});
+    .catch(err => {
+      const el = document.getElementById('state');
+      if (el && flag('debug', false)) el.textContent = 'bg: ' + (err && err.message);
+    });
 }
 
 function start() {
   loadBackground();
-  setInterval(loadBackground, 30000);
+  setInterval(loadBackground, 8000);
   const url = `${db}/shows/${key}/state.json`;
   let es;
   try {
