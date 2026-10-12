@@ -232,7 +232,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 60</span></h1>
+  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 61</span></h1>
   <span class="pill"><span class="dot" id="dot"></span><span id="status">Cues: not connected</span></span>
   <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
   <button class="primary" id="connect">Connect a dongle</button>
@@ -418,6 +418,13 @@ body.popout .win header{display:none}
           </select>
         </label>
         <label><input type="checkbox" id="rlStacked"> Stacked</label>
+        <span style="display:flex;align-items:center;gap:4px">Background
+          <button class="swatch rlsw" data-color="#000000" title="Black" style="background:#000"></button>
+          <button class="swatch rlsw" data-color="#101520" title="Dark" style="background:#101520"></button>
+          <button class="swatch rlsw" data-color="#00B140" title="Chroma green" style="background:#00B140"></button>
+          <button class="swatch rlsw" data-color="#0047BB" title="Chroma blue" style="background:#0047BB"></button>
+          <label for="rlBgFile" class="pill" style="padding:2px 8px;cursor:pointer">Photo<input id="rlBgFile" type="file" accept="image/*" hidden></label>
+        </span>
         <button id="rlPreview">Open preview</button>
       </div>
 
@@ -538,6 +545,7 @@ function loadSaved() {
     if (saved.ros && Array.isArray(saved.ros.items)) ros = Object.assign({ items: [], current: -1, startedAt: null }, saved.ros, { startedAt: null, current: -1 });
     if (typeof saved.locked === 'boolean') locked = saved.locked;
     if (saved.rlayout) Object.keys(saved.rlayout).forEach(k => { if (rlayout[k]) rlayout[k] = Object.assign(rlayout[k], saved.rlayout[k]); });
+    if (saved.rlBg) rlBg = saved.rlBg;
     if (saved.rlArrow && $('rlArrowStyle')) $('rlArrowStyle').value = saved.rlArrow;
     if (typeof saved.rlStacked === 'boolean' && $('rlStacked')) $('rlStacked').checked = saved.rlStacked;
     if (typeof saved.clock24 === 'boolean') clock24 = saved.clock24;
@@ -575,7 +583,7 @@ function save() {
       layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height,
                        min: w.dataset.min === '1', clear: w.classList.contains('clear') };
     });
-    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, showDetails, clock24, clockSeconds, selectedProgram, message, ros, locked, rlayout,
+    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, showDetails, clock24, clockSeconds, selectedProgram, message, ros, locked, rlayout, rlBg,
       rlArrow: $('rlArrowStyle') ? $('rlArrowStyle').value : 'same',
       rlStacked: $('rlStacked') ? $('rlStacked').checked : false,
       camUrl: $('camUrl') ? $('camUrl').value.trim() : '', camMode: $('camMode') ? $('camMode').value : 'snapshot',
@@ -1366,6 +1374,25 @@ const RL_PRESETS = {
 };
 
 let rlayout = JSON.parse(JSON.stringify(RL_PRESETS.confidence));
+let rlBg = { type: 'color', value: '#000000' };
+
+function applyRemoteBg(bg, publishIt) {
+  rlBg = bg || { type: 'color', value: '#000000' };
+  const stage = $('rlStage');
+  if (stage) {
+    if (rlBg.type === 'image') {
+      stage.style.backgroundColor = '';
+      stage.style.backgroundImage = `url(${rlBg.value})`;
+      stage.style.backgroundSize = 'cover';
+      stage.style.backgroundPosition = 'center';
+    } else {
+      stage.style.backgroundImage = '';
+      stage.style.backgroundColor = rlBg.value;
+    }
+  }
+  save();
+  if (publishIt) publishBackground(rlBg);
+}
 let rlSelected = null;
 
 function rlSample(k) {
@@ -1798,7 +1825,6 @@ if (!popoutPanel) {
   document.querySelectorAll('.swatch').forEach(btn => btn.addEventListener('click', () => {
     const bg = { type: 'color', value: btn.dataset.color };
     applyBackground(bg, true);
-    publishBackground(bg);
   }));
 
   on('bgFile', 'change', e => {
@@ -1819,7 +1845,6 @@ if (!popoutPanel) {
         small.width = Math.round(c.width * s2);
         small.height = Math.round(c.height * s2);
         small.getContext('2d').drawImage(c, 0, 0, small.width, small.height);
-        publishBackground({ type: 'image', value: small.toDataURL('image/jpeg', 0.7) });
       };
       img.src = reader.result;
     };
@@ -1828,7 +1853,6 @@ if (!popoutPanel) {
 
   on('bgClear', 'click', () => {
     applyBackground(null, true);
-    publishBackground(null);
   });
 
   on('layoutSave', 'click', () => {
