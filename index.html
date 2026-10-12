@@ -232,7 +232,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 62</span></h1>
+  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 63</span></h1>
   <span class="pill"><span class="dot" id="dot"></span><span id="status">Cues: not connected</span></span>
   <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
   <button class="primary" id="connect">Connect a dongle</button>
@@ -424,6 +424,16 @@ body.popout .win header{display:none}
           <button class="swatch rlsw" data-color="#00B140" title="Chroma green" style="background:#00B140"></button>
           <button class="swatch rlsw" data-color="#0047BB" title="Chroma blue" style="background:#0047BB"></button>
           <label for="rlBgFile" class="pill" style="padding:2px 8px;cursor:pointer">Photo<input id="rlBgFile" type="file" accept="image/*" hidden></label>
+        </span>
+        <span id="rlBgAdjust" style="display:none;align-items:center;gap:6px">
+          <select id="rlBgFit">
+            <option value="cover">Fill</option>
+            <option value="contain">Fit</option>
+            <option value="stretch">Stretch</option>
+          </select>
+          <label>Zoom <input type="range" id="rlBgZoom" min="50" max="300" value="100" style="width:80px"></label>
+          <label>X <input type="range" id="rlBgX" min="0" max="100" value="50" style="width:60px"></label>
+          <label>Y <input type="range" id="rlBgY" min="0" max="100" value="50" style="width:60px"></label>
         </span>
         <button id="rlPreview">Open preview</button>
       </div>
@@ -1374,22 +1384,39 @@ const RL_PRESETS = {
 };
 
 let rlayout = JSON.parse(JSON.stringify(RL_PRESETS.confidence));
-let rlBg = { type: 'color', value: '#000000' };
+let rlBg = { type: 'color', value: '#000000', fit: 'cover', zoom: 100, x: 50, y: 50 };
+
+function bgStyleFor(bg) {
+  const fit = bg.fit || 'cover';
+  const zoom = bg.zoom || 100;
+  return {
+    size: fit === 'stretch' ? '100% 100%' : fit === 'contain' ? 'contain' : (zoom === 100 ? 'cover' : zoom + '%'),
+    pos: `${bg.x == null ? 50 : bg.x}% ${bg.y == null ? 50 : bg.y}%`
+  };
+}
 
 function applyRemoteBg(bg, publishIt) {
   rlBg = bg || { type: 'color', value: '#000000' };
   const stage = $('rlStage');
   if (stage) {
     if (rlBg.type === 'image') {
-      stage.style.backgroundColor = '';
+      const st = bgStyleFor(rlBg);
+      stage.style.backgroundColor = '#000';
       stage.style.backgroundImage = `url(${rlBg.value})`;
-      stage.style.backgroundSize = 'cover';
-      stage.style.backgroundPosition = 'center';
+      stage.style.backgroundSize = st.size;
+      stage.style.backgroundPosition = st.pos;
+      stage.style.backgroundRepeat = 'no-repeat';
     } else {
       stage.style.backgroundImage = '';
       stage.style.backgroundColor = rlBg.value;
     }
   }
+  const adjust = $('rlBgAdjust');
+  if (adjust) adjust.style.display = rlBg.type === 'image' ? 'flex' : 'none';
+  if ($('rlBgFit')) $('rlBgFit').value = rlBg.fit || 'cover';
+  if ($('rlBgZoom')) $('rlBgZoom').value = rlBg.zoom || 100;
+  if ($('rlBgX')) $('rlBgX').value = rlBg.x == null ? 50 : rlBg.x;
+  if ($('rlBgY')) $('rlBgY').value = rlBg.y == null ? 50 : rlBg.y;
   save();
   if (publishIt) publishBackground(rlBg);
 }

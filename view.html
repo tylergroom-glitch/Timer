@@ -338,9 +338,19 @@ function loadBackground() {
       const layer = document.getElementById('bgLayer');
       if (!layer) return;
       if (!d) { layer.style.backgroundImage = ''; layer.style.backgroundColor = ''; return; }
-      if (typeof d === 'string') { layer.style.backgroundColor = ''; layer.style.backgroundImage = `url(${d})`; return; }
-      if (d.type === 'color') { layer.style.backgroundImage = ''; layer.style.backgroundColor = d.value; }
-      else { layer.style.backgroundColor = ''; layer.style.backgroundImage = `url(${d.value})`; }
+      if (typeof d === 'string') d = { type: 'image', value: d };
+      if (d.type === 'color') {
+        layer.style.backgroundImage = '';
+        layer.style.backgroundColor = d.value;
+        return;
+      }
+      const fit = d.fit || 'cover';
+      const zoom = d.zoom || 100;
+      layer.style.backgroundColor = '#000';
+      layer.style.backgroundImage = `url(${d.value})`;
+      layer.style.backgroundRepeat = 'no-repeat';
+      layer.style.backgroundSize = fit === 'stretch' ? '100% 100%' : fit === 'contain' ? 'contain' : (zoom === 100 ? 'cover' : zoom + '%');
+      layer.style.backgroundPosition = `${d.x == null ? 50 : d.x}% ${d.y == null ? 50 : d.y}%`;
     })
     .catch(err => {
       const el = document.getElementById('state');
