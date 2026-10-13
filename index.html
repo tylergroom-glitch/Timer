@@ -232,7 +232,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 67</span></h1>
+  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 69</span></h1>
   <span class="pill"><span class="dot" id="dot"></span><span id="status">Cues: not connected</span></span>
   <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
   <button class="primary" id="connect">Connect a dongle</button>
@@ -450,7 +450,7 @@ body.popout .win header{display:none}
     <div class="grip"></div>
   </section>
 
-  <section class="win" id="win-debug" style="left:40px;top:120px;width:430px;height:240px">
+  <section class="win" id="win-debug" style="left:40px;top:120px;width:470px;height:420px">
     <header><span class="name">Dongles</span><button class="mini" title="Minimize">&minus;</button></header>
     <div class="body"><div id="debug" style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.7">No dongles connected.</div></div>
     <div class="grip"></div>
@@ -913,7 +913,8 @@ function renderTimer() {
   const over = left < 0;
   if (stopAtZero && over) left = 0;
   el.textContent = fmtTime(left);
-  el.className = 'time ' + (left <= 0 ? (over && !stopAtZero ? 'red over' : 'red') : left <= live.yellow ? 'amber' : 'green');
+  const blinkNow = flashAtZero && left <= 0;
+  el.className = 'time ' + (left <= 0 ? (blinkNow ? 'red over' : 'red') : left <= live.yellow ? 'amber' : 'green');
   document.querySelectorAll('#win-timer .timer').forEach(t => t.classList.toggle('flashing', left <= 0 && flashAtZero));
   const tags = (live.blink ? ' · BLINK' : '') + (live.beep ? ' · BEEP' : '');
   if (src) src.textContent = `Program ${live.program} · set ${fmtTime(live.total)} · yellow at ${fmtTime(live.yellow)} · ${live.running ? 'running' : 'stopped'}${tags}`;
@@ -1128,6 +1129,15 @@ async function attach(d) {
   d.addEventListener('inputreport', e => {
     const bytes = new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength);
     role.count = (role.count || 0) + 1;
+    if (rawOn) {
+      const hex = Array.from(bytes, x => x.toString(16).padStart(2, '0')).join(' ');
+      if (hex !== role.rawLast || !rawDedupe) {
+        role.rawLast = hex;
+        role.raw = role.raw || [];
+        role.raw.unshift(`${new Date().toTimeString().slice(0, 8)}  ${hex}`);
+        if (role.raw.length > 60) role.raw.length = 60;
+      }
+    }
     role.lastAt = Date.now();
     if (bytes.some(x => x !== 0)) {
       role.sawData = Date.now();
@@ -1644,6 +1654,30 @@ function initRlayout() {
   });
   setInterval(() => { if ($('rlStage') && $('win-rlayout') && $('win-rlayout').style.display !== 'none') renderRlStage(); }, 1000);
 }
+
+/* ---------- Raw data reader ---------- */
+let rawOn = false, rawDedupe = true;
+function rawText() {
+  return roles.map((r, i) => {
+    const head = `#${i + 1} ${r.kind || 'unknown'} (id ${r.device.productId.toString(16)})`;
+    return head + '\n' + ((r.raw || []).join('\n') || '  (nothing yet)');
+  }).join('\n\n');
+}
+setInterval(() => {
+  const out = $('rawOut');
+  if (!out) return;
+  out.style.display = rawOn ? 'block' : 'none';
+  if (rawOn) out.textContent = rawText();
+}, 400);
+on('rawOn', 'change', e => { rawOn = e.target.checked; });
+on('rawDedupe', 'change', e => { rawDedupe = e.target.checked; });
+on('rawClear', 'click', () => { roles.forEach(r => { r.raw = []; r.rawLast = ''; }); });
+on('rawCopy', 'click', () => {
+  navigator.clipboard.writeText(rawText()).then(() => {
+    const btn = $('rawCopy');
+    if (btn) { btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = 'Copy'; }, 1200); }
+  });
+});
 
 /* ---------- Dongle diagnostics ---------- */
 setInterval(() => {
