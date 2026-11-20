@@ -99,6 +99,11 @@ button.ghost.tiny{padding:4px 9px;font-size:12px}
 .body:has(.arrows),.body:has(.solo){overflow:visible}
 #remote,#camBody{cursor:default}
 #remote,#camBody,.body:has(.stat),.body:has(#log){padding:10px 12px}
+.rsz{position:absolute;width:16px;height:16px;z-index:6}
+.rsz.nw{left:0;top:0;cursor:nwse-resize}
+.rsz.ne{right:0;top:0;cursor:nesw-resize}
+.rsz.sw{left:0;bottom:0;cursor:nesw-resize}
+.win.clear .rsz{opacity:0}
 .grip{position:absolute;right:2px;bottom:2px;width:18px;height:18px;cursor:nwse-resize;
   background:linear-gradient(135deg,transparent 50%,var(--line) 50%,var(--line) 60%,transparent 60%,transparent 72%,var(--line) 72%,var(--line) 82%,transparent 82%)}
 
@@ -231,7 +236,7 @@ body.msg-live #msgEdit{opacity:.55}
 #rosList .now{color:var(--green);font-weight:500}
 #rosList .done{color:var(--dim)}
 #rosList button{padding:1px 6px;font-size:11px}
-body.locked .grip,body.locked .al,body.locked #msgEdit,body.locked #rosBody .row{display:none}
+body.locked .grip,body.locked .rsz,body.locked .al,body.locked #msgEdit,body.locked #rosBody .row{display:none}
 body.locked .win header button.mini,body.locked .win header button.clearbg{display:none}
 #rlBody{padding:10px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
 #rlTop{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--dim)}
@@ -265,7 +270,7 @@ body.locked .win header button.mini,body.locked .win header button.clearbg{displ
 .win.showing-cam #camSetup{display:none}
 .win.showing-cam:hover #camSetup{display:block}
 
-body.popout #bar,body.popout .grip,body.popout #dock{display:none}
+body.popout #bar,body.popout .grip,body.popout .rsz,body.popout #dock{display:none}
 body.popout.combo #workspace{display:flex;flex-direction:row;gap:0}
 body.popout.combo .win{position:static;flex:1 1 0;height:100%;width:auto;min-width:0;border:0;border-radius:0;box-shadow:none;background:transparent}
 body.popout.combo.vertical #workspace{flex-direction:column}
@@ -278,7 +283,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <div class="brand">Cue&nbsp;Console <span class="build" id="brandVer">b94</span></div>
+  <div class="brand">Cue&nbsp;Console <span class="build" id="brandVer">b96</span></div>
 
   <div class="chips">
     <span class="chip"><span class="dot" id="dot"></span><span id="status">Cues</span></span>
@@ -687,7 +692,7 @@ body.popout .win header{display:none}
 </div>
 
 <script>
-const BUILD = 94;
+const BUILD = 96;
 // the desktop app passes its own version in; a browser tab just shows the build
 (function () {
   const el = document.getElementById('brandVer');
@@ -1151,21 +1156,53 @@ if (!popoutPanel) {
     head.addEventListener('pointerdown', startDrag);
     win.querySelector('.body').addEventListener('pointerdown', startDrag);
 
-    const grip = win.querySelector('.grip');
-    if (grip) grip.addEventListener('pointerdown', e => {
+    // Resize from any corner. The bottom-right one is the visible grip; the
+    // other three are invisible pads sitting over the corners.
+    const MIN_W = 180, MIN_H = 120;
+    const startResize = (handle, ex, ey) => handle.addEventListener('pointerdown', e => {
       if (locked) return;
       e.preventDefault();
-      const r = win.getBoundingClientRect();
+      e.stopPropagation();          // otherwise the window starts dragging too
+      const startL = win.offsetLeft, startT = win.offsetTop;
+      const startW = win.offsetWidth, startH = win.offsetHeight;
       const sx = e.clientX, sy = e.clientY;
-      grip.setPointerCapture(e.pointerId);
+      try { handle.setPointerCapture(e.pointerId); } catch {}
       win.style.zIndex = ++z;
       const move = ev => {
-        win.style.width = Math.max(180, r.width + ev.clientX - sx) + 'px';
-        win.style.height = Math.max(120, r.height + ev.clientY - sy) + 'px';
+        const dx = ev.clientX - sx, dy = ev.clientY - sy;
+        let w = startW, h = startH, l = startL, t = startT;
+        if (ex > 0) w = startW + dx;
+        if (ex < 0) { w = startW - dx; l = startL + dx; }
+        if (ey > 0) h = startH + dy;
+        if (ey < 0) { h = startH - dy; t = startT + dy; }
+        if (w < MIN_W) { if (ex < 0) l = startL + (startW - MIN_W); w = MIN_W; }
+        if (h < MIN_H) { if (ey < 0) t = startT + (startH - MIN_H); h = MIN_H; }
+        if (l < 0) { w += l; l = 0; }
+        if (t < 0) { h += t; t = 0; }
+        win.style.left = l + 'px';
+        win.style.top = t + 'px';
+        win.style.width = Math.max(MIN_W, w) + 'px';
+        win.style.height = Math.max(MIN_H, h) + 'px';
       };
-      const up = () => { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); save(); };
-      grip.addEventListener('pointermove', move);
-      grip.addEventListener('pointerup', up);
+      const up = () => {
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', up);
+        save();
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', up);
+    });
+
+    const grip = win.querySelector('.grip');
+    if (grip) startResize(grip, 1, 1);
+    [['nw', -1, -1], ['ne', 1, -1], ['sw', -1, 1]].forEach(([dir, ex, ey]) => {
+      let pad = win.querySelector('.rsz.' + dir);
+      if (!pad) {
+        pad = document.createElement('div');
+        pad.className = 'rsz ' + dir;
+        win.append(pad);
+      }
+      startResize(pad, ex, ey);
     });
   });
 }
@@ -2107,6 +2144,7 @@ function renderRlStage() {
     }
   });
   syncRlList();
+  if (rlTarget === 'show') schedulePushView();
 }
 
 // update the checkboxes without rebuilding them mid-click
@@ -2441,12 +2479,25 @@ function screenDoc(which) {
   };
 }
 
+let lastBgSent = null, pushViewTimer = null;
 function pushView() {
   if (popoutPanel) return;
   try {
     channel.postMessage({ type: 'view', doc: screenDoc('show') });
-    channel.postMessage({ type: 'viewbg', bg: bgs.show });
+    // a background can be a whole photo, so only send it when it changes
+    const bg = JSON.stringify(bgs.show || null);
+    if (bg !== lastBgSent) {
+      lastBgSent = bg;
+      channel.postMessage({ type: 'viewbg', bg: bgs.show });
+    }
   } catch {}
+}
+
+// Builder edits should land on the monitor as they happen, not on the next
+// heartbeat. Every edit redraws the stage, so that is the place to hook.
+function schedulePushView() {
+  if (popoutPanel || pushViewTimer) return;
+  pushViewTimer = setTimeout(() => { pushViewTimer = null; pushView(); }, 80);
 }
 
 function publish(force) {
