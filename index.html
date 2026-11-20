@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cue Console</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#10151C">
+<link rel="icon" href="/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -26,17 +30,54 @@ input{font:inherit;color:var(--text);background:#131920;border:1px solid var(--l
 :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 a{color:var(--blue)}
 
-#bar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:rgba(16,21,28,.85)}
-#bar h1{margin:0;font-size:16px;font-weight:600;margin-right:auto}
-.pill{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--dim);padding:4px 10px;border:1px solid var(--line);border-radius:999px}
-.dot{width:9px;height:9px;border-radius:50%;background:#46505C}
-.dot.on{background:var(--green)}
-.dot.flash{background:#BFF3C8}
-.al{padding:2px 7px;font-size:13px;line-height:1.2}
-.swatch{width:20px;height:20px;padding:0;border-radius:5px;border:1px solid #0006;cursor:pointer}
+#bar{display:flex;align-items:center;gap:14px;padding:9px 14px;background:rgba(14,18,25,.92);
+  border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+.brand{font-weight:600;font-size:15px;letter-spacing:.01em;white-space:nowrap}
+.brand .build{font-weight:400;font-size:11px;color:var(--dim);margin-left:4px}
+.chips{display:flex;gap:8px;margin-right:auto;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);
+  padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:#151B24}
+.bar-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button.ghost{background:#19202B;border:1px solid var(--line);color:var(--text);border-radius:8px;
+  padding:7px 12px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+button.ghost:hover{background:#222C3A;border-color:#3A475A}
+button.ghost.primary{background:#1F4E8C;border-color:#2B63AD}
+button.ghost.primary:hover{background:#2660A8}
+button.ghost.on{background:#1F4E8C;border-color:#2B63AD}
+button.ghost.tiny{padding:4px 9px;font-size:12px}
+.menuwrap{position:relative;display:inline-flex}
+
+#scrim{position:fixed;inset:0;background:#0008;z-index:9000;opacity:0;pointer-events:none;transition:opacity .15s}
+#scrim.on{opacity:1;pointer-events:auto}
+#drawer{position:fixed;top:0;right:0;height:100%;width:330px;max-width:88vw;z-index:9001;
+  background:#141A23;border-left:1px solid var(--line);transform:translateX(104%);
+  transition:transform .18s ease;display:flex;flex-direction:column;box-shadow:-20px 0 50px #0007}
+#drawer.on{transform:none}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+.drawer-body{flex:1;overflow:auto;padding:6px 16px 20px}
+.grp{padding:14px 0;border-bottom:1px solid #202833}
+.grp:last-child{border-bottom:0}
+.grp h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.grp .hint{color:var(--dim);font-size:12px;margin:8px 0 0;line-height:1.45}
+.row2{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--dim);margin-bottom:10px}
+.row2 select{background:#0F141C;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:5px 8px;font:inherit;font-size:13px}
+.sw{display:flex;align-items:center;gap:9px;font-size:13px;padding:6px 0;cursor:pointer}
+.sw input{width:16px;height:16px;accent-color:#2B63AD}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap}
+.swatches{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.swatch{width:22px;height:22px;padding:0;border-radius:6px;border:1px solid #0006;cursor:pointer}
 .swatch:hover{outline:2px solid var(--blue);outline-offset:1px}
 .swatch.on{outline:2px solid var(--text);outline-offset:1px}
-
+.al{padding:5px 9px;font-size:14px;background:#19202B;border:1px solid var(--line);color:var(--text);border-radius:7px;cursor:pointer}
+.al:hover{background:#222C3A}
+.dot{width:8px;height:8px;border-radius:50%;background:#46505C}
+.dot.on{background:var(--green)}
+.dot.flash{background:#BFF3C8}
+#winMenu{display:none;position:absolute;top:100%;right:0;margin-top:8px;background:#141A23;
+  border:1px solid var(--line);border-radius:10px;padding:8px 10px;z-index:10000;min-width:210px;box-shadow:0 14px 40px #0009}
+#winMenu.open{display:block}
+#winMenu label{display:flex;align-items:center;gap:8px;padding:5px 2px;color:var(--text);font-size:13px;cursor:pointer;white-space:nowrap}
+#winMenu input{accent-color:#2B63AD}
 #workspace{position:relative;height:calc(100% - 53px);overflow:hidden}
 .win{position:absolute;background:rgba(27,34,44,.9);border:1px solid var(--line);border-radius:10px;
   display:flex;flex-direction:column;min-width:110px;min-height:70px;box-shadow:0 10px 30px #0006}
@@ -190,7 +231,7 @@ body.msg-live #msgEdit{opacity:.55}
 #rosList .now{color:var(--green);font-weight:500}
 #rosList .done{color:var(--dim)}
 #rosList button{padding:1px 6px;font-size:11px}
-body.locked .grip,body.locked #bar .al,body.locked #msgEdit,body.locked #rosBody .row{display:none}
+body.locked .grip,body.locked .al,body.locked #msgEdit,body.locked #rosBody .row{display:none}
 body.locked .win header button.mini,body.locked .win header button.clearbg{display:none}
 #rlBody{padding:10px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
 #rlTop{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--dim)}
@@ -208,6 +249,8 @@ body.locked .win header button.mini,body.locked .win header button.clearbg{displ
 #rlInspector input[type=range]{width:96px}
 #rlInspector input[type=number]{width:58px;background:#131920;color:var(--text);border:1px solid var(--line);border-radius:5px;padding:2px 4px}
 #rlInspector .hint{color:var(--dim);margin:0}
+#remote .row label{white-space:nowrap;display:flex;align-items:center;gap:4px}
+#remote input[type=url],#remote input[type=text]{width:100%}
 .rlel{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden;
   line-height:1;cursor:grab;user-select:none;font-variant-numeric:tabular-nums}
 .rlel.sel{outline:1px solid var(--blue);outline-offset:1px}
@@ -223,6 +266,9 @@ body.locked .win header button.mini,body.locked .win header button.clearbg{displ
 .win.showing-cam:hover #camSetup{display:block}
 
 body.popout #bar,body.popout .grip,body.popout #dock{display:none}
+body.popout.combo #workspace{display:flex;flex-direction:row;gap:0}
+body.popout.combo .win{position:static;flex:1 1 0;height:100%;width:auto;min-width:0;border:0;border-radius:0;box-shadow:none;background:transparent}
+body.popout.combo.vertical #workspace{flex-direction:column}
 body.popout #workspace{height:100%}
 body.popout .win{position:static;height:100%;width:100%;border:0;border-radius:0;box-shadow:none;background:transparent}
 body.popout .win header{display:none}
@@ -232,59 +278,125 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <h1>Cue Console <span style="font-weight:400;color:var(--dim);font-size:12px">build 69</span></h1>
-  <span class="pill"><span class="dot" id="dot"></span><span id="status">Cues: not connected</span></span>
-  <span class="pill"><span class="dot" id="dotT"></span><span id="statusT">Timer: not connected</span></span>
-  <button class="primary" id="connect">Connect a dongle</button>
-  <button id="reset">Reset count</button>
-  <span class="pill" style="gap:5px">Background
-    <button class="swatch" data-color="#00B140" title="Chroma green" style="background:#00B140"></button>
-    <button class="swatch" data-color="#0047BB" title="Chroma blue" style="background:#0047BB"></button>
-    <button class="swatch" data-color="#B4232A" title="Red" style="background:#B4232A"></button>
-    <button class="swatch" data-color="#000000" title="Black" style="background:#000"></button>
-  </span>
-  <label class="pill" for="bgFile" style="cursor:pointer">Photo<input id="bgFile" type="file" accept="image/*" hidden></label>
-  <button id="bgClear">None</button>
-  <label class="pill" style="gap:6px">Arrows
-    <select id="arrowStyle" style="background:#131920;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font:inherit">
-      <option value="classic">Classic</option>
-      <option value="chase">Chase</option>
-      <option value="star">Stars</option>
-      <option value="pointer">Finger</option>
-      <option value="bulbs">Bulbs</option>
-    </select>
-  </label>
-  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="stacked"> Stacked</label>
-  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="sound"> Sound</label>
-  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="stopZero"> Stop at 0:00</label>
-  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="flashZero"> Flash at 0:00</label>
-  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="showDetails"> Clock details</label>
-  <label class="pill" style="gap:6px">Layout
-    <select id="layoutPick" style="background:#131920;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font:inherit">
-      <option value="">—</option>
-    </select>
-  </label>
-  <span class="pill" id="alignBar" style="gap:4px">Align
-    <button class="al" data-a="left" title="Align left">&#8676;</button>
-    <button class="al" data-a="hcenter" title="Centre across">&#8703;</button>
-    <button class="al" data-a="right" title="Align right">&#8677;</button>
-    <button class="al" data-a="top" title="Align top">&#8673;</button>
-    <button class="al" data-a="vcenter" title="Centre down">&#8691;</button>
-    <button class="al" data-a="bottom" title="Align bottom">&#8675;</button>
-    <button class="al" data-a="hdist" title="Space evenly across">&#8596;</button>
-    <button class="al" data-a="vdist" title="Space evenly down">&#8597;</button>
-    <label style="cursor:pointer;color:var(--dim);font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" id="alignPage"> to page</label>
-  </span>
-  <button id="layoutSave">Save as…</button>
-  <button id="layoutDelete">Delete</button>
-  <button id="resetLayout">Reset layout</button>
-  <button id="showView" title="Open the show view full screen on another monitor (F)">Show view</button>
-  <span class="pill" style="position:relative;gap:6px;cursor:pointer" id="winMenuBtn">Windows &#9662;
-    <div id="winMenu"></div>
-  </span>
-  <label class="pill" style="gap:6px;cursor:pointer"><input type="checkbox" id="lockUi"> Lock</label>
-  <span class="pill"><span class="dot" id="dotNet"></span><span id="statusNet">Link: off</span></span>
+  <div class="brand">Cue&nbsp;Console <span class="build">b90</span></div>
+
+  <div class="chips">
+    <span class="chip"><span class="dot" id="dot"></span><span id="status">Cues</span></span>
+    <span class="chip"><span class="dot" id="dotT"></span><span id="statusT">Timer</span></span>
+    <span class="chip"><span class="dot" id="dotNet"></span><span id="statusNet">Link</span></span>
+  </div>
+
+  <div class="bar-actions">
+    <button class="ghost" id="connect">Connect</button>
+    <button class="ghost" id="showView" title="Show view full screen (F)">Show view</button>
+    <span class="menuwrap" id="winMenuBtn"><button class="ghost">Windows</button><div id="winMenu"></div></span>
+    <button class="ghost" id="helpBtn" title="How this works">Help</button>
+    <button class="ghost" id="lockBtn" title="Lock the layout">Lock</button>
+    <button class="ghost primary" id="settingsBtn" title="Settings">Settings</button>
+  </div>
 </div>
+
+<div id="scrim"></div>
+<aside id="drawer">
+  <div class="drawer-head">
+    <strong>Settings</strong>
+    <button class="ghost" id="drawerClose">Close</button>
+  </div>
+
+  <div class="drawer-body">
+    <section class="grp">
+      <h4>Cue arrows</h4>
+      <label class="row2">Style
+        <select id="arrowStyle">
+          <option value="classic">Classic</option>
+          <option value="chase">Chase</option>
+          <option value="star">Stars</option>
+          <option value="pointer">Finger</option>
+          <option value="bulbs">Bulbs</option>
+        </select>
+      </label>
+      <label class="sw"><input type="checkbox" id="stacked"><span>Stacked layout</span></label>
+      <label class="sw"><input type="checkbox" id="sound"><span>Click sound</span></label>
+      <button class="ghost" id="reset">Reset cue count</button>
+    </section>
+
+    <section class="grp">
+      <h4>Timer</h4>
+      <label class="sw"><input type="checkbox" id="stopZero"><span>Stop at 0:00</span></label>
+      <label class="sw"><input type="checkbox" id="flashZero"><span>Flash at 0:00</span></label>
+      <label class="sw"><input type="checkbox" id="showDetails"><span>Show clock details</span></label>
+    </section>
+
+    <section class="grp">
+      <h4>Console background</h4>
+      <div class="swatches">
+        <button class="swatch" data-color="#00B140" title="Chroma green" style="background:#00B140"></button>
+        <button class="swatch" data-color="#0047BB" title="Chroma blue" style="background:#0047BB"></button>
+        <button class="swatch" data-color="#B4232A" title="Red" style="background:#B4232A"></button>
+        <button class="swatch" data-color="#000000" title="Black" style="background:#000"></button>
+        <label class="ghost tiny" for="bgFile">Photo<input id="bgFile" type="file" accept="image/*" hidden></label>
+        <button class="ghost tiny" id="bgClear">None</button>
+      </div>
+    </section>
+
+    <section class="grp">
+      <h4>Show view</h4>
+      <label class="row2">Panel
+        <select id="showPanel">
+          <option value="screen">Built layout</option>
+          <option value="timer">Speaker timer</option>
+          <option value="combo">Timer + cue lights</option>
+          <option value="combo-v">Timer above cue lights</option>
+          <option value="arrows">Cue lights</option>
+          <option value="next">Next arrow</option>
+          <option value="back">Back arrow</option>
+          <option value="clock">Time of day</option>
+        </select>
+      </label>
+      <label class="row2">Monitor
+        <select id="showScreen"><option value="">Detect monitors…</option></select>
+      </label>
+      <div class="btnrow">
+        <button class="ghost" id="detectScreens">Detect monitors</button>
+        <button class="ghost" id="openShow">Open full screen</button>
+      </div>
+      <p class="hint">Chrome asks once for permission to place windows across displays.</p>
+    </section>
+
+    <section class="grp">
+      <h4>Layouts</h4>
+      <label class="row2">Saved
+        <select id="layoutPick"><option value="">—</option></select>
+      </label>
+      <div class="btnrow">
+        <button class="ghost" id="layoutSave">Save as…</button>
+        <button class="ghost" id="layoutDelete">Delete</button>
+        <button class="ghost" id="resetLayout">Reset</button>
+      </div>
+    </section>
+
+    <section class="grp">
+      <h4>Arrange selected windows</h4>
+      <div class="btnrow" id="alignBar">
+        <button class="al" data-a="left" title="Align left">&#8676;</button>
+        <button class="al" data-a="hcenter" title="Centre across">&#8703;</button>
+        <button class="al" data-a="right" title="Align right">&#8677;</button>
+        <button class="al" data-a="top" title="Align top">&#8673;</button>
+        <button class="al" data-a="vcenter" title="Centre down">&#8691;</button>
+        <button class="al" data-a="bottom" title="Align bottom">&#8675;</button>
+        <button class="al" data-a="hdist" title="Space evenly across">&#8596;</button>
+        <button class="al" data-a="vdist" title="Space evenly down">&#8597;</button>
+      </div>
+      <label class="sw"><input type="checkbox" id="alignPage"><span>Align to the screen</span></label>
+      <p class="hint">Shift-click windows to select more than one. Arrow keys nudge, Alt plus arrows resizes.</p>
+    </section>
+
+    <section class="grp">
+      <h4>Lock</h4>
+      <label class="sw"><input type="checkbox" id="lockUi"><span>Lock layout and settings</span></label>
+    </section>
+  </div>
+</aside>
 
 <div id="workspace">
   <section class="win" id="win-timer" style="left:20px;top:20px;width:560px;height:320px">
@@ -316,29 +428,29 @@ body.popout .win header{display:none}
     <div class="grip"></div>
   </section>
 
-  <section class="win" id="win-slide" style="left:20px;top:360px;width:270px;height:230px">
-    <header><span class="name">Slide</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
-    <div class="body">
-      <div class="count" id="slideCount">0</div>
-      <div class="row"><button id="minus">Back</button><button id="plus">Forward</button></div>
-    </div>
-    <div class="grip"></div>
-  </section>
-
   <section class="win" id="win-remote" style="left:1040px;top:20px;width:340px;height:300px">
     <header><span class="name">Remote link</span><button class="mini" title="Minimize">&minus;</button></header>
     <div class="body" id="remote">
-      <input id="dbUrl" type="url" placeholder="Firebase database URL" spellcheck="false">
+      <div class="row" style="justify-content:flex-start;gap:6px;align-items:center">
+        <input id="dbUrl" type="url" placeholder="Firebase database URL" spellcheck="false" readonly
+               title="This is the database the console writes to — not the link you send"
+               style="flex:1;min-width:0;opacity:.55;cursor:default">
+        <button id="dbEdit" class="ghost" style="flex:none" title="Change the database">Change</button>
+      </div>
+      <p style="margin:2px 0 6px;color:var(--dim);font-size:11px">Database, not the link to send. The link is at the bottom.</p>
       <input id="showName" type="text" placeholder="Show name, e.g. ballroom-a" spellcheck="false">
       <input id="showPass" type="text" placeholder="Viewer passcode (optional)" spellcheck="false">
       <div class="row" style="justify-content:flex-start;gap:10px;flex-wrap:wrap;margin-top:4px">
         <label><input type="checkbox" class="vopt" data-k="tod" checked> Time of day</label>
         <label><input type="checkbox" class="vopt" data-k="timer" checked> Timer</label>
         <label><input type="checkbox" class="vopt" data-k="arrows" checked> Arrows</label>
-        <label><input type="checkbox" class="vopt" data-k="slide"> Slide</label>
         <label><input type="checkbox" class="vopt" data-k="extras" checked> Now / next</label>
         <label><input type="checkbox" class="vopt" data-k="detail"> Timer detail</label>
         <label><input type="checkbox" class="vopt" data-k="clear"> Transparent</label>
+      </div>
+      <div class="row" style="justify-content:flex-start;margin-top:8px">
+        <label style="min-width:84px">Viewer site</label>
+        <input id="viewerBase" style="flex:1;min-width:200px" placeholder="https://timer-xi-red.vercel.app/">
       </div>
       <div class="row" style="justify-content:flex-start;margin-top:8px">
         <button id="copyLink">Copy link</button>
@@ -346,7 +458,8 @@ body.popout .win header{display:none}
         <button id="newLink">New link</button>
       </div>
       <p id="shareState">Not sharing.</p>
-      <div id="link"></div>
+      <div id="link" style="word-break:break-all;background:#0B1016;border:1px solid var(--line);
+        border-radius:6px;padding:8px;font-size:12px"></div>
     </div>
     <div class="grip"></div>
   </section>
@@ -394,10 +507,53 @@ body.popout .win header{display:none}
     <div class="grip"></div>
   </section>
 
+  <section class="win" id="win-clock" style="left:700px;top:620px;width:340px;height:200px">
+    <header><span class="name">Time of day</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <div class="body">
+      <div class="timer">
+        <div class="time" id="tod">--:--</div>
+        <div id="todFace" style="display:none;flex:1;min-height:0;align-items:center;justify-content:center">
+          <svg viewBox="0 0 100 100" style="height:100%;width:100%;max-height:100%">
+            <circle cx="50" cy="50" r="47" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+            <g id="todTicks"></g>
+            <line id="todHour" x1="50" y1="50" x2="50" y2="28" stroke="var(--text)" stroke-width="4" stroke-linecap="round"/>
+            <line id="todMin" x1="50" y1="50" x2="50" y2="16" stroke="var(--text)" stroke-width="2.6" stroke-linecap="round"/>
+            <line id="todSec" x1="50" y1="56" x2="50" y2="12" stroke="var(--red)" stroke-width="1.2" stroke-linecap="round"/>
+            <circle cx="50" cy="50" r="2.4" fill="var(--text)"/>
+          </svg>
+        </div>
+        <div class="sub">
+          <button id="todMode" style="padding:3px 9px;font-size:12px">Analog</button>
+          <button id="todFormat" style="padding:3px 9px;font-size:12px">24 hour</button>
+          <button id="todSeconds" style="padding:3px 9px;font-size:12px">Hide seconds</button>
+        </div>
+      </div>
+    </div>
+    <div class="grip"></div>
+  </section>
+
+  <section class="win" id="win-next" style="left:20px;top:620px;width:320px;height:200px">
+    <header><span class="name">Next arrow</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <div class="body"><div class="solo"><svg viewBox="0 0 100 100" role="img" aria-label="Next cue" class="cue-arrow next style-classic"></svg></div></div>
+    <div class="grip"></div>
+  </section>
+
+  <section class="win" id="win-back" style="left:360px;top:620px;width:320px;height:200px">
+    <header><span class="name">Back arrow</span><button class="clearbg" title="Toggle panel background">&#9635;</button><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <div class="body"><div class="solo"><svg viewBox="0 0 100 100" role="img" aria-label="Back cue" class="cue-arrow back style-classic"></svg></div></div>
+    <div class="grip"></div>
+  </section>
+
   <section class="win" id="win-rlayout" style="left:40px;top:140px;width:720px;height:480px">
-    <header><span class="name">Remote screen</span><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
+    <header><span class="name">Screen builder</span><button class="mini" title="Minimize">&minus;</button><button class="pop" title="Open in its own window">&#8599;</button></header>
     <div class="body" id="rlBody">
       <div id="rlTop">
+        <label>Building
+          <select id="rlTarget">
+            <option value="remote">Remote screen</option>
+            <option value="show">Show view</option>
+          </select>
+        </label>
         <label>Preset
           <select id="rlPreset">
             <option value="">—</option>
@@ -452,7 +608,78 @@ body.popout .win header{display:none}
 
   <section class="win" id="win-debug" style="left:40px;top:120px;width:470px;height:420px">
     <header><span class="name">Dongles</span><button class="mini" title="Minimize">&minus;</button></header>
-    <div class="body"><div id="debug" style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.7">No dongles connected.</div></div>
+    <div class="body">
+      <div id="debug" style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.7">No dongles connected.</div>
+      <div class="row" style="justify-content:flex-start;margin-top:10px;flex-wrap:wrap;gap:8px">
+        <label><input type="checkbox" id="rawOn"> Show raw data</label>
+        <label><input type="checkbox" id="rawDedupe" checked> Hide repeats</label>
+        <button id="rawClear">Clear</button>
+        <button id="rawCopy">Copy</button>
+      </div>
+      <pre id="rawOut" style="display:none;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;
+        line-height:1.5;white-space:pre-wrap;word-break:break-all;background:#0B1016;border:1px solid var(--line);
+        border-radius:6px;padding:8px;margin-top:8px;max-height:240px;overflow:auto"></pre>
+    </div>
+    <div class="grip"></div>
+  </section>
+
+  <section class="win" id="win-help" data-min="1" style="left:70px;top:70px;width:560px;height:560px;display:none">
+    <header><span class="name">Help</span><button class="mini" title="Minimize">&minus;</button></header>
+    <div class="body">
+      <div id="helpBody" style="font-size:13px;line-height:1.65">
+
+        <h3 style="margin:0 0 6px;font-size:14px">Getting the hardware connected</h3>
+        <p style="margin:0 0 4px">Plug the DSAN dongle into USB, and run the Cat-5 from the Limitimer or
+        PerfectCue into it. Then press <strong>Connect</strong> in the top bar.</p>
+        <p style="margin:0 0 10px">The newer VC-2000-2 appears as two ports, one for the timer and one for cues,
+        so press Connect a second time to pick up the other. The app works out which is which on its own by
+        listening for a few seconds. After the first time it reconnects by itself on every launch.</p>
+
+        <h3 style="margin:14px 0 6px;font-size:14px">Reading the top bar</h3>
+        <p style="margin:0 0 10px">The three dots are <strong>Cues</strong>, <strong>Timer</strong> and
+        <strong>Link</strong>. Grey means nothing is arriving, green means data is flowing. Link refers to the
+        remote viewer, not the hardware.</p>
+
+        <h3 style="margin:14px 0 6px;font-size:14px">Putting a clock on a monitor</h3>
+        <p style="margin:0 0 10px">Press <strong>Show view</strong>, choose what to display, and pick a monitor.
+        You can show the speaker timer, the cue arrows, or both side by side or stacked.
+        <strong>F</strong> toggles full screen and <strong>Escape</strong> leaves it.</p>
+
+        <h3 style="margin:14px 0 6px;font-size:14px">Sending a view to someone else</h3>
+        <p style="margin:0 0 10px">Open the <strong>Remote link</strong> window, tick what the viewer should see,
+        and press <strong>Copy link</strong>. Anyone with that link sees the same clock and arrows on a phone or
+        laptop. <strong>New link</strong> makes a fresh address and retires the old one. A passcode can be set so
+        the link only opens for someone who has it.</p>
+
+        <h3 style="margin:14px 0 6px;font-size:14px">Arranging the screen</h3>
+        <p style="margin:0 0 10px">Drag any window by its title bar or its body, and resize from the bottom-right
+        corner. <strong>Windows</strong> shows and hides panels. Save an arrangement under a name with
+        <strong>Save as…</strong> and switch between them from the Layout box. <strong>Lock</strong> freezes
+        everything so nothing moves by accident once a show is running.</p>
+
+        <h3 style="margin:14px 0 6px;font-size:14px">During a show</h3>
+        <p style="margin:0 0 10px">The timer mirrors whatever the Limitimer is doing, including the warning and
+        red times set on the unit itself. <strong>Run of show</strong> tracks your segments and shows whether
+        you are ahead or behind. <strong>Message</strong> puts a line of text on the speaker's screen — the
+        preset buttons are one tap, or type your own.</p>
+
+        <h3 style="margin:14px 0 6px;font-size:14px">When something is wrong</h3>
+        <p style="margin:0 0 4px"><strong>No arrows or no clock:</strong> open <strong>Dongles</strong>. It shows
+        each connected device, whether data is arriving, and lets you force which is the timer and which is the
+        cue system if it guessed wrong.</p>
+        <p style="margin:0 0 4px"><strong>"Port is busy":</strong> another program has the dongle. Close any
+        browser tab or second copy of this app that might be using it; the console retries by itself every few
+        seconds.</p>
+        <p style="margin:0 0 10px"><strong>Nothing at all:</strong> unplug the dongle, wait five seconds and plug
+        it back in, leaving this panel open. It reconnects on its own.</p>
+
+        <h3 style="margin:14px 0 6px;font-size:14px">Updates</h3>
+        <p style="margin:0 0 10px">The app updates itself whenever it has internet, and asks before installing so
+        it never interrupts a show. With no internet it runs happily on the version it already has.
+        <strong>Ctrl+Shift+B</strong> goes back to the version built into the app if an update ever misbehaves.</p>
+
+      </div>
+    </div>
     <div class="grip"></div>
   </section>
 
@@ -460,6 +687,7 @@ body.popout .win header{display:none}
 </div>
 
 <script>
+const BUILD = 90;
 const VID = 0x0483, PID = 0x101a;
 // DSAN dongles have shown up under more than one product id
 const isDsan = d => d.vendorId === VID && (d.productId === 0x101a || d.productId === 0x2080 ||
@@ -487,6 +715,10 @@ let showKey = null, sharing = false, lastPublish = 0, publishTimer = null;
 /* ---------- Pop-out windows ---------- */
 if (popoutPanel) {
   document.body.classList.add('popout');
+  if (popoutPanel === 'combo') {
+    document.body.classList.add('combo');
+    if (params.get('vertical') === '1') document.body.classList.add('vertical');
+  }
   const goFull = () => { const el = document.documentElement; if (el.requestFullscreen) el.requestFullscreen().catch(() => {}); };
   if (params.get('full') === '1') {
     setTimeout(() => goFull(), 150);
@@ -503,15 +735,22 @@ if (popoutPanel) {
       else goFull();
     }
   });
-  document.querySelectorAll('.win').forEach(w => { if (w.id !== 'win-' + popoutPanel) w.remove(); });
+  let popRenderTimer = null;
+  const keep = popoutPanel === 'combo' ? ['win-timer', 'win-arrows'] : ['win-' + popoutPanel];
+  document.querySelectorAll('.win').forEach(w => { if (!keep.includes(w.id)) w.remove(); });
   channel.addEventListener('message', e => {
     if (!e.data) return;
     if (e.data.type === 'state') {
       Object.assign(state, e.data.state);
       if (typeof e.data.message === 'string') { message = e.data.message; renderMessage(); }
-      render();
+      // a redraw in the middle of an arrow flash wipes it, so wait it out
+      const since = Date.now() - lastPulseAt;
+      if (since < 700) {
+        clearTimeout(popRenderTimer);
+        popRenderTimer = setTimeout(() => { try { render(); } catch {} }, 700 - since);
+      } else render();
     }
-    else if (e.data.type === 'cue') pulse(e.data.cue);
+    else if (e.data.type === 'cue') { state.lastCue = { at: Date.now(), type: e.data.cue }; pulse(e.data.cue); }
   });
   channel.postMessage({ type: 'hello' });
 }
@@ -519,8 +758,16 @@ document.querySelectorAll('.pop').forEach(btn => btn.addEventListener('click', (
   const id = btn.closest('.win').id.replace('win-', '');
   window.open(`${location.pathname}?panel=${id}`, `cue-${id}`, 'width=640,height=460');
 }));
-function broadcast() { if (!popoutPanel) channel.postMessage({ type: 'state', state, message }); }
-channel.addEventListener('message', e => { if (!popoutPanel && e.data && e.data.type === 'hello') broadcast(); });
+function broadcast() {
+  if (popoutPanel) return;
+  channel.postMessage({ type: 'state', state, message });
+  pushView();
+}
+channel.addEventListener('message', e => {
+  if (popoutPanel || !e.data) return;
+  if (e.data.type === 'hello') broadcast();
+  else if (e.data.type === 'hello-view') pushView();
+});
 if (!popoutPanel) setInterval(broadcast, 5000);
 
 /* ---------- Saved settings ---------- */
@@ -556,12 +803,28 @@ function loadSaved() {
     if (typeof saved.message === 'string') message = saved.message;
     if (saved.ros && Array.isArray(saved.ros.items)) ros = Object.assign({ items: [], current: -1, startedAt: null }, saved.ros, { startedAt: null, current: -1 });
     if (typeof saved.locked === 'boolean') locked = saved.locked;
-    if (saved.rlayout) Object.keys(saved.rlayout).forEach(k => { if (rlayout[k]) rlayout[k] = Object.assign(rlayout[k], saved.rlayout[k]); });
-    if (saved.rlBg) rlBg = saved.rlBg;
-    if (saved.rlArrow && $('rlArrowStyle')) $('rlArrowStyle').value = saved.rlArrow;
-    if (typeof saved.rlStacked === 'boolean' && $('rlStacked')) $('rlStacked').checked = saved.rlStacked;
+    if (saved.rlayout) Object.keys(saved.rlayout).forEach(k => { if (layouts.remote[k]) layouts.remote[k] = Object.assign(layouts.remote[k], saved.rlayout[k]); });
+    if (saved.layouts) ['remote', 'show'].forEach(t => {
+      if (!saved.layouts[t]) return;
+      Object.keys(saved.layouts[t]).forEach(k => {
+        if (layouts[t][k]) layouts[t][k] = Object.assign(layouts[t][k], saved.layouts[t][k]);
+      });
+    });
+    if (saved.bgs) ['remote', 'show'].forEach(t => { if (saved.bgs[t]) bgs[t] = saved.bgs[t]; });
+    else if (saved.rlBg) bgs.remote = saved.rlBg;
+    if (saved.arrowOpts) ['remote', 'show'].forEach(t => { if (saved.arrowOpts[t]) arrowOpts[t] = saved.arrowOpts[t]; });
+    else if (saved.rlArrow) arrowOpts.remote = { style: saved.rlArrow, stacked: !!saved.rlStacked };
+    rlTarget = saved.rlTarget === 'show' ? 'show' : 'remote';
+    rlayout = layouts[rlTarget];
+    rlBg = bgs[rlTarget];
+    if ($('rlTarget')) $('rlTarget').value = rlTarget;
+    const aNow = arrowOpts[rlTarget] || { style: 'same', stacked: false };
+    if ($('rlArrowStyle')) $('rlArrowStyle').value = aNow.style;
+    if ($('rlStacked')) $('rlStacked').checked = !!aNow.stacked;
     if (typeof saved.clock24 === 'boolean') clock24 = saved.clock24;
     if (typeof saved.clockSeconds === 'boolean') clockSeconds = saved.clockSeconds;
+    if (typeof saved.clockAnalog === 'boolean') clockAnalog = saved.clockAnalog;
+    if (saved.showPanel && $('showPanel')) $('showPanel').value = saved.showPanel;
     if (saved.camUrl && $('camUrl')) $('camUrl').value = saved.camUrl;
     if (saved.camMode && $('camMode')) $('camMode').value = saved.camMode;
     if (saved.showKey) showKey = saved.showKey;
@@ -595,7 +858,10 @@ function save() {
       layout[w.id] = { left: w.style.left, top: w.style.top, width: w.style.width, height: w.style.height,
                        min: w.dataset.min === '1', clear: w.classList.contains('clear') };
     });
-    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, showDetails, clock24, clockSeconds, selectedProgram, message, ros, locked, rlayout, rlBg,
+    localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, showDetails, clock24, clockSeconds, clockAnalog,
+      showPanel: $('showPanel') ? $('showPanel').value : 'timer', selectedProgram, message, ros, locked, rlayout, rlBg,
+      layouts, bgs, rlTarget,
+      arrowOpts: (function () { readArrowOpts(); return arrowOpts; })(),
       rlArrow: $('rlArrowStyle') ? $('rlArrowStyle').value : 'same',
       rlStacked: $('rlStacked') ? $('rlStacked').checked : false,
       camUrl: $('camUrl') ? $('camUrl').value.trim() : '', camMode: $('camMode') ? $('camMode').value : 'snapshot',
@@ -668,7 +934,7 @@ function applyBackground(bg, store) {
     layer.style.backgroundColor = '';
     layer.style.backgroundImage = `url(${bg.value})`;
   }
-  document.querySelectorAll('.swatch').forEach(b => {
+  document.querySelectorAll('.swatch:not(.rlsw)').forEach(b => {
     b.classList.toggle('on', !!bg && bg.type === 'color' && b.dataset.color === bg.value);
   });
   if (store) {
@@ -930,17 +1196,18 @@ function renderTimer() {
 
 function render() {
   renderTimer();
-  if ($('slideCount')) $('slideCount').textContent = state.slide;
   if ($('dot')) {
     $('dot').classList.toggle('on', state.connected);
-    $('status').textContent = state.connected ? 'Cues: connected' : 'Cues: not connected';
+    $('status').textContent = state.connected ? 'Cues' : 'No cues';
     $('dotT').classList.toggle('on', !!state.live);
-    $('statusT').textContent = state.live ? 'Timer: live' : (state.timerConnected ? 'Timer: waiting for data' : 'Timer: not connected');
+    $('statusT').textContent = state.live ? 'Timer' : (state.timerConnected ? 'Timer…' : 'No timer');
   }
 }
 
+let lastPulseAt = 0;
 function pulse(type) {
   const now = Date.now();
+  lastPulseAt = now;
   const staged = arrowStyle === 'chase' || arrowStyle === 'bulbs';
   document.querySelectorAll('.cue-arrow.' + type).forEach(svg => {
     const rapid = now - (svg._last || 0) < 600;
@@ -984,8 +1251,6 @@ function applyCue(type) {
   // instant feedback only; the log, saving and sharing catch up a moment later
   pulse(type);
   playClick();
-  const count = $('slideCount');
-  if (count) count.textContent = state.slide;
   if ($('dot')) { $('dot').classList.add('flash'); setTimeout(() => $('dot').classList.remove('flash'), 120); }
   if (!popoutPanel) channel.postMessage({ type: 'cue', cue: type });
   scheduleHeavy();
@@ -1103,19 +1368,27 @@ function applyLive(b) {
   try { broadcast(); publish(); } catch {}
 }
 
-// keep the running flag honest when the clock stops changing
-setInterval(() => {
-  if (!state.live) return;
-  const r = Date.now() - lastTickAt < 2500;
-  if (r !== state.live.running) {
-    state.live.running = r;
-    renderTimer(); broadcast(); publish();
-  }
-}, 1000);
+// Both of these watch the hardware, so they belong to the main window only.
+// A pop-out has no dongle of its own: running them there wiped the time a
+// second after every update and cancelled the arrow flash.
+if (!popoutPanel) {
+  // keep the running flag honest when the clock stops changing
+  setInterval(() => {
+    if (!state.live) return;
+    const r = Date.now() - lastTickAt < 2500;
+    if (r !== state.live.running) {
+      state.live.running = r;
+      renderTimer(); broadcast(); publish();
+    }
+  }, 1000);
 
-setInterval(() => {
-  if (state.live && Date.now() - liveSeen > 5000) { state.live = null; state.timerConnected = false; render(); broadcast(); publish(true); }
-}, 1000);
+  setInterval(() => {
+    if (state.live && Date.now() - liveSeen > 5000) {
+      state.live = null; state.timerConnected = false;
+      render(); broadcast(); publish(true);
+    }
+  }, 1000);
+}
 
 /* ---------- Devices ---------- */
 const attached = [], roles = [];
@@ -1164,6 +1437,202 @@ async function attach(d) {
   render();
   broadcast();
   return true;
+}
+
+/* ---------- Serial dongles (VC-2000-2) ----------
+   The VC-2000-2 shows up as two COM ports instead of a HID device:
+     VideoClock-Limitimer  19200 baud, same 52-byte packets as the old dongles
+     VideoClock-PerfectCue  9600 baud, one byte per press: F3 next, FB back      */
+const serialRoles = [];
+const SER_TIMER_BAUD = 19200, SER_CUE_BAUD = 9600;
+const SER_NEXT = 0xF3, SER_BACK = 0xFB;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function serOpen(r, baud) {
+  // Some builds refuse the fuller option set, so fall back step by step
+  // and remember which one worked.
+  const tries = [
+    { baudRate: baud, dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none', bufferSize: 65536 },
+    { baudRate: baud, dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none', bufferSize: 4096 },
+    { baudRate: baud, bufferSize: 4096 },
+    { baudRate: baud }
+  ];
+  let last = null;
+  for (let i = 0; i < tries.length; i++) {
+    try {
+      await r.port.open(tries[i]);
+      r.baud = baud; r.open = true; r.openVia = i + 1; r.openErr = null; r.error = null;
+      return;
+    } catch (e) {
+      last = e;
+      r.openErr = `try ${i + 1}: ${(e && e.name) || 'Error'} — ${(e && e.message) || e}`;
+      try { await r.port.close(); } catch {}
+      await sleep(150);
+    }
+  }
+  throw last || new Error('could not open');
+}
+async function serClose(r) {
+  r.running = false;
+  try { if (r.reader) await r.reader.cancel(); } catch {}
+  try { if (r.pump) await r.pump; } catch {}
+  r.reader = null; r.pump = null;
+  for (let i = 0; i < 6; i++) {
+    try { await r.port.close(); r.open = false; return true; } catch { await sleep(150); }
+  }
+  return false;
+}
+async function serPump(r) {
+  while (r.running) {
+    try { r.reader = r.port.readable.getReader(); } catch { await sleep(80); continue; }
+    let hiccup = false;
+    while (r.running) {
+      let res;
+      try { res = await r.reader.read(); } catch { hiccup = true; break; }
+      if (res.done) break;
+      if (res.value && res.value.length) serFeed(r, res.value);
+    }
+    try { r.reader.releaseLock(); } catch {}
+    r.reader = null;
+    if (!r.running) break;
+    if (hiccup) { r.hiccups = (r.hiccups || 0) + 1; await sleep(60); continue; }
+    break;
+  }
+}
+
+function serFeed(r, bytes) {
+  r.count = (r.count || 0) + bytes.length;
+  r.lastAt = Date.now();
+  if (rawOn) {
+    const hex = Array.from(bytes, x => x.toString(16).padStart(2, '0')).join(' ');
+    if (hex !== r.rawLast || !rawDedupe) {
+      r.rawLast = hex;
+      r.raw = r.raw || [];
+      r.raw.unshift(`${new Date().toTimeString().slice(0, 8)}  ${hex}`);
+      if (r.raw.length > 60) r.raw.length = 60;
+    }
+  }
+  if (r.kind === 'timer') serFeedTimer(r, bytes);
+  else if (r.kind === 'cue') serFeedCue(r, bytes);
+  else {
+    r.probe = r.probe || [];
+    for (const b of bytes) r.probe.push(b);
+    if (r.probe.length > 4096) r.probe.splice(0, r.probe.length - 4096);
+  }
+}
+
+function serFeedTimer(r, bytes) {
+  r.buf = r.buf || [];
+  for (const b of bytes) r.buf.push(b);
+  let i = 0;
+  while (i < r.buf.length - 6) {
+    if (r.buf[i] === 0x81 && r.buf[i+1] === 0x00 && (r.buf[i+2] === 0x20 || r.buf[i+2] === 0x21)) {
+      let end = -1;
+      for (let j = i + 20; j < Math.min(i + 200, r.buf.length); j++) {
+        if (r.buf[j] === 0x83) { end = j; break; }
+      }
+      if (end < 0) { if (r.buf.length - i > 200) { i++; continue; } break; }
+      if (end - i + 1 >= 40) {
+        r.pkts = (r.pkts || 0) + 1;
+        state.timerConnected = true;
+        applyLive(r.buf.slice(i, end + 1));
+      }
+      i = end + 1;
+    } else i++;
+  }
+  r.buf = r.buf.slice(i);
+  if (r.buf.length > 8192) r.buf = [];
+}
+
+function serFeedCue(r, bytes) {
+  for (const b of bytes) {
+    if (b !== SER_NEXT && b !== SER_BACK) continue;
+    const now = Date.now();
+    if (now - (r.lastCueAt || 0) < DEBOUNCE_MS) continue;
+    r.lastCueAt = now;
+    r.sawCue = true;
+    r.presses = (r.presses || 0) + 1;
+    if (!state.connected) { state.connected = true; render(); broadcast(); }
+    applyCue(b === SER_NEXT ? 'next' : 'back');
+  }
+}
+
+function serHasHeader(buf) {
+  for (let i = 0; i < buf.length - 3; i++) {
+    if (buf[i] === 0x81 && buf[i+1] === 0x00 && (buf[i+2] === 0x20 || buf[i+2] === 0x21)) return true;
+  }
+  return false;
+}
+
+function serRetry(r, why) {
+  r.error = why + ' — retrying';
+  render();
+  clearTimeout(r.retryTimer);
+  r.retryTimer = setTimeout(() => {
+    if (serialRoles.includes(r) && !r.open) serDetect(r);
+  }, 3000);
+}
+
+async function serDetect(r) {
+  clearTimeout(r.retryTimer);
+  r.kind = null; r.probe = []; r.buf = [];
+  try { await serOpen(r, SER_TIMER_BAUD); }
+  catch (e) {
+    const msg = (e && e.message) || 'could not open';
+    serRetry(r, /open/i.test(msg) ? 'Port is busy — close other apps using it' : msg);
+    return;
+  }
+  r.running = true;
+  r.pump = serPump(r);
+  await sleep(1800);
+  if (serHasHeader(r.probe)) {
+    r.kind = 'timer';
+    state.timerConnected = true;
+    const carry = r.probe; r.probe = [];
+    serFeedTimer(r, carry);
+    render(); broadcast();
+    return;
+  }
+  // nothing that looks like timer data: treat it as the cue port
+  await serClose(r);
+  try { await serOpen(r, SER_CUE_BAUD); }
+  catch (e) {
+    const msg = (e && e.message) || 'could not open';
+    serRetry(r, /open/i.test(msg) ? 'Port is busy — close other apps using it' : msg);
+    return;
+  }
+  r.kind = 'cue';
+  r.probe = [];
+  state.connected = true;
+  r.running = true;
+  r.pump = serPump(r);
+  render(); broadcast();
+}
+
+async function attachSerial(port) {
+  if (serialRoles.some(r => r.port === port)) return true;
+  const r = { port, kind: null, count: 0, lastAt: 0, buf: [], probe: [], raw: [], serial: true };
+  serialRoles.push(r);
+  render(); broadcast();
+  await serDetect(r);
+  return true;
+}
+
+async function serSetRole(r, kind) {
+  const baud = kind === 'timer' ? SER_TIMER_BAUD : SER_CUE_BAUD;
+  clearTimeout(r.retryTimer);
+  await serClose(r);
+  try { await serOpen(r, baud); }
+  catch (e) {
+    const msg = (e && e.message) || 'could not open';
+    serRetry(r, /open/i.test(msg) ? 'Port is busy — close other apps using it' : msg);
+    return;
+  }
+  r.kind = kind; r.buf = []; r.probe = []; r.error = null;
+  if (kind === 'timer') state.timerConnected = true; else state.connected = true;
+  r.running = true;
+  r.pump = serPump(r);
+  render(); broadcast();
 }
 
 // Rule: a dongle sending real (non-zero) traffic is a timer, even if we can't parse it
@@ -1302,25 +1771,92 @@ let locked = false;
 function applyLock() {
   document.body.classList.toggle('locked', locked);
   if ($('lockUi')) $('lockUi').checked = locked;
+  const btn = $('lockBtn');
+  if (btn) { btn.classList.toggle('on', locked); btn.textContent = locked ? 'Locked' : 'Lock'; }
 }
 
-/* ---------- Show view on a second monitor ---------- */
+/* ---------- Show view on a chosen monitor ---------- */
+let screenList = [];
+
+async function detectScreens() {
+  const sel = $('showScreen');
+  if (!sel) return;
+  if (!window.getScreenDetails) {
+    sel.innerHTML = '<option value="">This browser cannot list monitors</option>';
+    return;
+  }
+  try {
+    const details = await window.getScreenDetails();
+    screenList = details.screens;
+    const current = details.currentScreen;
+    sel.innerHTML = screenList.map((sc, i) => {
+      const name = sc.label || `Display ${i + 1}`;
+      const here = sc === current ? ' (this one)' : '';
+      return `<option value="${i}">${name} · ${sc.width}×${sc.height}${here}</option>`;
+    }).join('');
+    // default to a monitor that is not the one holding the console
+    const other = screenList.findIndex(sc => sc !== current);
+    sel.value = String(other >= 0 ? other : 0);
+    save();
+  } catch {
+    sel.innerHTML = '<option value="">Permission declined</option>';
+  }
+}
+
 async function openShowView(panel) {
-  const url = `${location.pathname}?panel=${panel || 'timer'}&full=1`;
+  let which = panel || ($('showPanel') ? $('showPanel').value : 'timer');
+  let extra = '';
+  if (which === 'combo-v') { which = 'combo'; extra = '&vertical=1'; }
+  // "Built layout" renders through the same engine as the remote screen
+  const url = which === 'screen'
+    ? `${location.pathname.replace(/[^/]*$/, '')}view.html?local=1&full=1`
+    : `${location.pathname}?panel=${which}&full=1${extra}`;
   let features = 'width=1280,height=720';
   try {
-    if (window.getScreenDetails) {
+    if (!screenList.length && window.getScreenDetails) {
       const details = await window.getScreenDetails();
-      const other = details.screens.find(sc => sc !== details.currentScreen) || details.currentScreen;
-      features = `left=${other.availLeft},top=${other.availTop},width=${other.availWidth},height=${other.availHeight}`;
+      screenList = details.screens;
     }
+    const sel = $('showScreen');
+    let target = null;
+    if (sel && sel.value !== '' && screenList[Number(sel.value)]) target = screenList[Number(sel.value)];
+    else if (screenList.length) {
+      const details = await window.getScreenDetails();
+      target = screenList.find(sc => sc !== details.currentScreen) || screenList[0];
+    }
+    if (target) features = `left=${target.availLeft},top=${target.availTop},width=${target.availWidth},height=${target.availHeight}`;
   } catch {}
-  const win = window.open(url, 'cue-show-' + (panel || 'timer'), features + ',menubar=no,toolbar=no');
+  const win = window.open(url, 'cue-show-' + which, features + ',menubar=no,toolbar=no');
   if (win) win.focus();
 }
-on('showView', 'click', () => openShowView('timer'));
+
+on('detectScreens', 'click', detectScreens);
+on('openShow', 'click', () => openShowView());
+on('showView', 'click', () => openShowView());
+on('showPanel', 'change', save);
+on('showScreen', 'change', save);
 document.addEventListener('keydown', e => {
-  if (e.key === 'f' && !e.target.closest('input, select, textarea')) openShowView('timer');
+  if (e.key === 'f' && !e.target.closest('input, select, textarea')) openShowView();
+});
+
+/* ---------- Settings drawer ---------- */
+function openDrawer(open) {
+  const d = $('drawer'), sc = $('scrim');
+  if (!d) return;
+  d.classList.toggle('on', open);
+  if (sc) sc.classList.toggle('on', open);
+}
+on('settingsBtn', 'click', () => openDrawer(!$('drawer').classList.contains('on')));
+on('drawerClose', 'click', () => openDrawer(false));
+on('scrim', 'click', () => openDrawer(false));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') openDrawer(false);
+});
+on('lockBtn', 'click', () => {
+  const cb = $('lockUi');
+  if (!cb) return;
+  cb.checked = !cb.checked;
+  cb.dispatchEvent(new Event('change'));
 });
 
 /* ---------- Show and hide windows ---------- */
@@ -1350,6 +1886,16 @@ function buildWindowMenu() {
   }));
 }
 
+on('helpBtn', 'click', () => {
+  const w = $('win-help');
+  if (!w) return;
+  const hidden = w.style.display === 'none' || w.dataset.min === '1';
+  if (hidden) setWindowVisible(w, true);
+  else { w.style.zIndex = ++z; }
+  const body = w.querySelector('.body');
+  if (body) body.scrollTop = 0;
+});
+
 on('winMenuBtn', 'click', e => {
   if (e.target.closest('#winMenu')) return;
   const menu = $('winMenu');
@@ -1369,8 +1915,7 @@ const RL_ELEMENTS = [
   { k: 'tod',     label: 'Time of day' },
   { k: 'arrows',  label: 'Cue arrows' },
   { k: 'nownext', label: 'Now / next' },
-  { k: 'message', label: 'Message' },
-  { k: 'slide',   label: 'Slide' }
+  { k: 'message', label: 'Message' }
 ];
 
 const RL_PRESETS = {
@@ -1379,37 +1924,66 @@ const RL_PRESETS = {
     tod:     { x: 6,  y: 4,  w: 40, h: 14, on: true,  size: 0.7, color: '#DCE2E8', align: 'left' },
     nownext: { x: 6,  y: 72, w: 88, h: 10, on: true,  size: 0.6, color: '#DCE2E8', align: 'center' },
     message: { x: 6,  y: 84, w: 88, h: 12, on: true,  size: 0.6, color: '#E3B341', align: 'center' },
-    arrows:  { x: 60, y: 4,  w: 34, h: 14, on: false, size: 1,   color: 'auto', align: 'center' },
-    slide:   { x: 86, y: 86, w: 12, h: 8,  on: false, size: 0.6, color: '#8C98A5', align: 'right' }
+    arrows:  { x: 60, y: 4,  w: 34, h: 14, on: false, size: 1,   color: 'auto', align: 'center' }
   },
   confidence: {
     timer:   { x: 4,  y: 6,  w: 92, h: 56, on: true,  size: 0.86, color: 'auto', align: 'center' },
     arrows:  { x: 16, y: 64, w: 68, h: 30, on: true,  size: 1,    color: 'auto', align: 'center' },
     tod:     { x: 4,  y: 6,  w: 20, h: 10, on: false, size: 0.7,  color: '#DCE2E8', align: 'left' },
     nownext: { x: 4,  y: 94, w: 92, h: 6,  on: false, size: 0.5,  color: '#8C98A5', align: 'center' },
-    message: { x: 10, y: 2,  w: 80, h: 12, on: false, size: 0.6,  color: '#E3B341', align: 'center' },
-    slide:   { x: 88, y: 2,  w: 10, h: 8,  on: false, size: 0.6,  color: '#8C98A5', align: 'right' }
+    message: { x: 10, y: 2,  w: 80, h: 12, on: false, size: 0.6,  color: '#E3B341', align: 'center' }
   },
   clock: {
     timer:   { x: 2,  y: 14, w: 96, h: 72, on: true,  size: 0.9, color: 'auto', align: 'center' },
     tod:     { x: 2,  y: 2,  w: 96, h: 10, on: false, size: 0.7, color: '#DCE2E8', align: 'center' },
     arrows:  { x: 30, y: 70, w: 40, h: 20, on: false, size: 1,   color: 'auto', align: 'center' },
     nownext: { x: 2,  y: 88, w: 96, h: 8,  on: false, size: 0.5, color: '#8C98A5', align: 'center' },
-    message: { x: 2,  y: 2,  w: 96, h: 10, on: false, size: 0.6, color: '#E3B341', align: 'center' },
-    slide:   { x: 88, y: 2,  w: 10, h: 8,  on: false, size: 0.6, color: '#8C98A5', align: 'right' }
+    message: { x: 2,  y: 2,  w: 96, h: 10, on: false, size: 0.6, color: '#E3B341', align: 'center' }
   },
   board: {
     timer:   { x: 4,  y: 18, w: 60, h: 46, on: true,  size: 0.82, color: 'auto', align: 'center' },
     tod:     { x: 66, y: 18, w: 30, h: 20, on: true,  size: 0.7,  color: '#DCE2E8', align: 'center' },
     arrows:  { x: 66, y: 40, w: 30, h: 24, on: true,  size: 1,    color: 'auto', align: 'center' },
     nownext: { x: 4,  y: 66, w: 92, h: 10, on: true,  size: 0.6,  color: '#DCE2E8', align: 'center' },
-    message: { x: 4,  y: 78, w: 92, h: 16, on: true,  size: 0.6,  color: '#E3B341', align: 'center' },
-    slide:   { x: 4,  y: 4,  w: 14, h: 10, on: true,  size: 0.6,  color: '#8C98A5', align: 'left' }
+    message: { x: 4,  y: 78, w: 92, h: 16, on: true,  size: 0.6,  color: '#E3B341', align: 'center' }
   }
 };
 
-let rlayout = JSON.parse(JSON.stringify(RL_PRESETS.confidence));
-let rlBg = { type: 'color', value: '#000000', fit: 'cover', zoom: 100, x: 50, y: 50 };
+// The builder edits one of two screens: the remote link, and the Show view
+// that goes out to a monitor. rlayout always points at whichever is selected,
+// so everything below keeps working unchanged.
+const freshBg = () => ({ type: 'color', value: '#000000', fit: 'cover', zoom: 100, x: 50, y: 50 });
+const layouts = {
+  remote: JSON.parse(JSON.stringify(RL_PRESETS.confidence)),
+  show: JSON.parse(JSON.stringify(RL_PRESETS.confidence))
+};
+const bgs = { remote: freshBg(), show: freshBg() };
+const arrowOpts = { remote: { style: 'same', stacked: false }, show: { style: 'same', stacked: false } };
+let rlTarget = 'remote';
+let rlayout = layouts.remote;
+let rlBg = bgs.remote;
+
+function readArrowOpts() {
+  arrowOpts[rlTarget] = {
+    style: $('rlArrowStyle') ? $('rlArrowStyle').value : 'same',
+    stacked: $('rlStacked') ? $('rlStacked').checked : false
+  };
+}
+function switchTarget(next) {
+  if (next === rlTarget) return;
+  readArrowOpts();
+  layouts[rlTarget] = rlayout;
+  bgs[rlTarget] = rlBg;
+  rlTarget = next;
+  rlayout = layouts[next];
+  rlSelected = null;
+  const a = arrowOpts[next] || { style: 'same', stacked: false };
+  if ($('rlArrowStyle')) $('rlArrowStyle').value = a.style;
+  if ($('rlStacked')) $('rlStacked').checked = !!a.stacked;
+  applyRemoteBg(bgs[next], false);
+  renderRlList(); renderRlStage(); renderRlInspector();
+  save(); publish(true);
+}
 
 function bgStyleFor(bg) {
   const fit = bg.fit || 'cover';
@@ -1422,6 +1996,7 @@ function bgStyleFor(bg) {
 
 function applyRemoteBg(bg, publishIt) {
   rlBg = bg || { type: 'color', value: '#000000' };
+  bgs[rlTarget] = rlBg;
   const stage = $('rlStage');
   if (stage) {
     if (rlBg.type === 'image') {
@@ -1466,7 +2041,6 @@ function rlSample(k) {
     return 'Now: Opening remarks · Next: Keynote';
   }
   if (k === 'message') return message || 'Wrap up';
-  if (k === 'slide') return 'Slide ' + state.slide;
   return '';
 }
 
@@ -1646,10 +2220,14 @@ function initRlayout() {
   renderRlList();
   renderRlStage();
   renderRlInspector();
+  on('rlTarget', 'change', e => switchTarget(e.target.value));
+  on('rlArrowStyle', 'change', () => { readArrowOpts(); save(); pushView(); publish(true); });
+  on('rlStacked', 'change', () => { readArrowOpts(); save(); pushView(); publish(true); });
   on('rlPreset', 'change', e => {
     const preset = RL_PRESETS[e.target.value];
     if (!preset) return;
     rlayout = JSON.parse(JSON.stringify(preset));
+    layouts[rlTarget] = rlayout;
     renderRlList(); renderRlStage(); renderRlInspector(); save(); publish(true);
   });
   setInterval(() => { if ($('rlStage') && $('win-rlayout') && $('win-rlayout').style.display !== 'none') renderRlStage(); }, 1000);
@@ -1658,10 +2236,15 @@ function initRlayout() {
 /* ---------- Raw data reader ---------- */
 let rawOn = false, rawDedupe = true;
 function rawText() {
-  return roles.map((r, i) => {
-    const head = `#${i + 1} ${r.kind || 'unknown'} (id ${r.device.productId.toString(16)})`;
+  const hid = roles.map((r, i) => {
+    const head = `#${i + 1} ${r.kind || 'unknown'} (usb id ${r.device.productId.toString(16)})`;
     return head + '\n' + ((r.raw || []).join('\n') || '  (nothing yet)');
-  }).join('\n\n');
+  });
+  const ser = serialRoles.map((r, i) => {
+    const head = `S${i + 1} ${r.kind || 'identifying'} (serial ${r.baud || '-'} baud)`;
+    return head + '\n' + ((r.raw || []).join('\n') || '  (nothing yet)');
+  });
+  return hid.concat(ser).join('\n\n');
 }
 setInterval(() => {
   const out = $('rawOut');
@@ -1671,7 +2254,9 @@ setInterval(() => {
 }, 400);
 on('rawOn', 'change', e => { rawOn = e.target.checked; });
 on('rawDedupe', 'change', e => { rawDedupe = e.target.checked; });
-on('rawClear', 'click', () => { roles.forEach(r => { r.raw = []; r.rawLast = ''; }); });
+on('rawClear', 'click', () => {
+  roles.concat(serialRoles).forEach(r => { r.raw = []; r.rawLast = ''; });
+});
 on('rawCopy', 'click', () => {
   navigator.clipboard.writeText(rawText()).then(() => {
     const btn = $('rawCopy');
@@ -1680,21 +2265,48 @@ on('rawCopy', 'click', () => {
 });
 
 /* ---------- Dongle diagnostics ---------- */
+function kindName(k) {
+  return k === 'timer' ? 'speaker timer' : k === 'cue' ? 'cue system' : 'identifying…';
+}
 setInterval(() => {
   const box = $('debug');
   if (!box) return;
-  if (!roles.length) { box.textContent = 'No dongles connected.'; return; }
-  box.innerHTML = roles.map((r, i) => {
+  const cr = (navigator.userAgent.match(/Chrome\/(\d+)/) || [])[1];
+  const src = params.get('src') === 'web' ? 'page from website'
+    : params.get('src') === 'app' ? 'page built into the app' : 'page from this file';
+  const head = `<div style="color:var(--dim);margin-bottom:6px">build ${BUILD} · ${src}<br>` +
+    `engine ${cr || '?'} · serial ${'serial' in navigator ? 'yes' : 'no'} · usb ${'hid' in navigator ? 'yes' : 'no'}</div>`;
+  if (!roles.length && !serialRoles.length) {
+    box.innerHTML = head + 'No dongles connected. Press Connect and pick your dongle.';
+    return;
+  }
+  const hid = roles.map((r, i) => {
     const age = r.lastAt ? Math.round((Date.now() - r.lastAt) / 1000) + 's ago' : 'never';
-    const kind = r.kind === 'timer' ? 'speaker timer' : r.kind === 'cue' ? 'cue system' : 'identifying…';
     const cueInfo = r.kind === 'cue' ? `<br>&nbsp;&nbsp;presses ${cueFrames} · used ${cueApplied} · ignored ${cueDropped}` : '';
-    return `<div>#${i + 1} · ${kind} · ${r.count ? 'receiving' : 'no data'} (${age})${cueInfo}<br>` +
+    return `<div>#${i + 1} · usb dongle · ${kindName(r.kind)} · ${r.count ? 'receiving' : 'no data'} (${age})${cueInfo}<br>` +
       `&nbsp;&nbsp;<button class="setrole" data-i="${i}" data-k="timer">Use as timer</button> ` +
       `<button class="setrole" data-i="${i}" data-k="cue">Use as cue</button></div>`;
-  }).join('');
+  });
+  const ser = serialRoles.map((r, i) => {
+    const age = r.lastAt ? Math.round((Date.now() - r.lastAt) / 1000) + 's ago' : 'never';
+    const extra = r.kind === 'timer' ? `<br>&nbsp;&nbsp;packets ${r.pkts || 0}`
+      : r.kind === 'cue' ? `<br>&nbsp;&nbsp;presses ${r.presses || 0}` : '';
+    const detail = r.openErr ? `<br>&nbsp;&nbsp;<span style="color:var(--dim)">${r.openErr}</span>` : '';
+    const via = r.open && r.openVia > 1 ? `<br>&nbsp;&nbsp;opened on fallback ${r.openVia}` : '';
+    const err = (r.error ? `<br>&nbsp;&nbsp;<span style="color:var(--red)">${r.error}</span>` : '') + detail + via;
+    return `<div>S${i + 1} · VC-2000-2 port · ${kindName(r.kind)} · ${r.baud || '-'} baud · ` +
+      `${r.count ? 'receiving' : 'no data'} (${age})${extra}${err}<br>` +
+      `&nbsp;&nbsp;<button class="setser" data-i="${i}" data-k="timer">Use as timer</button> ` +
+      `<button class="setser" data-i="${i}" data-k="cue">Use as cue</button></div>`;
+  });
+  box.innerHTML = head + hid.concat(ser).join('');
   box.querySelectorAll('.setrole').forEach(btn => btn.addEventListener('click', () => {
     const r = roles[Number(btn.dataset.i)];
     if (r) setRole(r, btn.dataset.k);
+  }));
+  box.querySelectorAll('.setser').forEach(btn => btn.addEventListener('click', () => {
+    const r = serialRoles[Number(btn.dataset.i)];
+    if (r) serSetRole(r, btn.dataset.k);
   }));
 }, 1500);
 
@@ -1705,7 +2317,7 @@ function setNet(stateName) {
   if (!dot || !label) return;
   dot.classList.toggle('on', stateName === 'on');
   dot.style.background = stateName === 'error' ? 'var(--red)' : (stateName === 'on' ? '' : '#46505C');
-  label.textContent = stateName === 'on' ? 'Link: live' : stateName === 'error' ? 'Link: offline' : 'Link: off';
+  label.textContent = stateName === 'on' ? 'Link' : stateName === 'error' ? 'Link off' : 'No link';
 }
 const DEFAULT_DB = 'https://dsan-f12e2-default-rtdb.firebaseio.com';
 
@@ -1734,13 +2346,41 @@ function dbBase() {
   const raw = (el ? (el.value || '').trim() : '').replace(/\/+$/, '') || DEFAULT_DB;
   return /^https?:\/\//.test(raw) ? raw : null;
 }
+const HOSTED_VIEWER = 'https://timer-xi-red.vercel.app/';
+const DEAD_VIEWERS = [/timer\.touchstonecreativegroup\.com/i];
+function viewerBase() {
+  const el = $('viewerBase');
+  const typed = el ? (el.value || '').trim() : '';
+  if (/^https?:\/\//.test(typed)) return typed.replace(/view\.html.*$/, '').replace(/\/?$/, '/');
+  // The desktop app runs from a local file, which is no use to anyone else,
+  // so fall back to the hosted copy of the viewer.
+  if (location.protocol !== 'http:' && location.protocol !== 'https:') return HOSTED_VIEWER;
+  return location.origin + location.pathname.replace(/index\.html$/, '');
+}
 function viewerLink() {
-  const base = location.origin + location.pathname.replace(/index\.html$/, '');
+  const base = viewerBase();
   const o = viewerOptions();
-  const flags = ['tod', 'timer', 'arrows', 'slide', 'extras', 'detail', 'clear']
+  const flags = ['tod', 'timer', 'arrows', 'extras', 'detail', 'clear']
     .map(k => `${k}=${o[k] ? 1 : 0}`).join('&');
   return `${base}view.html?db=${encodeURIComponent(dbBase() || '')}&k=${showKey}&${flags}` + (passPath ? '&lock=1' : '');
 }
+on('viewerBase', 'input', () => {
+  try { localStorage.setItem('tcg-viewer-base', $('viewerBase').value.trim()); } catch {}
+  refreshLink();
+});
+(function () {
+  const el = $('viewerBase');
+  if (!el) return;
+  let saved = '';
+  try { saved = localStorage.getItem('tcg-viewer-base') || ''; } catch {}
+  // an address that was never live would make every copied link dead
+  if (saved && DEAD_VIEWERS.some(re => re.test(saved))) {
+    saved = '';
+    try { localStorage.removeItem('tcg-viewer-base'); } catch {}
+  }
+  if (!saved && location.protocol !== 'http:' && location.protocol !== 'https:') saved = HOSTED_VIEWER;
+  el.value = saved;
+})();
 function refreshLink() {
   if (!dbBase()) {
     $('link').textContent = '';
@@ -1754,19 +2394,17 @@ function refreshLink() {
   $('link').innerHTML = `<a href="${viewerLink()}" target="_blank" rel="noopener">${viewerLink()}</a>`;
   save();
 }
-function publish(force) {
-  if (!sharing || !showKey || popoutPanel || !dbBase()) return;
-  const now = Date.now();
-  if (!force && now - lastPublish < 700) {
-    clearTimeout(publishTimer);
-    publishTimer = setTimeout(() => publish(true), 700);
-    return;
-  }
-  lastPublish = now;
-  const payload = {
-    layout: rlayout,
-    remoteArrow: ($('rlArrowStyle') && $('rlArrowStyle').value !== 'same') ? $('rlArrowStyle').value : arrowStyle,
-    remoteStacked: $('rlStacked') ? $('rlStacked').checked : arrowStacked,
+// What a laid-out screen needs to draw itself. The remote link gets this over
+// the network; the Show view gets the same thing over a channel in the browser.
+function screenDoc(which) {
+  const a = which === rlTarget ? {
+    style: $('rlArrowStyle') ? $('rlArrowStyle').value : 'same',
+    stacked: $('rlStacked') ? $('rlStacked').checked : false
+  } : (arrowOpts[which] || { style: 'same', stacked: false });
+  return {
+    layout: which === rlTarget ? rlayout : layouts[which],
+    remoteArrow: a.style !== 'same' ? a.style : arrowStyle,
+    remoteStacked: a.stacked,
     message,
     ros: ros.current >= 0 && ros.items[ros.current] ? {
       now: ros.items[ros.current].name,
@@ -1782,8 +2420,29 @@ function publish(force) {
     arrowStacked,
     stopAtZero,
     flashAtZero,
-    at: now
+    at: Date.now()
   };
+}
+
+function pushView() {
+  if (popoutPanel) return;
+  try {
+    channel.postMessage({ type: 'view', doc: screenDoc('show') });
+    channel.postMessage({ type: 'viewbg', bg: bgs.show });
+  } catch {}
+}
+
+function publish(force) {
+  pushView();
+  if (!sharing || !showKey || popoutPanel || !dbBase()) return;
+  const now = Date.now();
+  if (!force && now - lastPublish < 700) {
+    clearTimeout(publishTimer);
+    publishTimer = setTimeout(() => publish(true), 700);
+    return;
+  }
+  lastPublish = now;
+  const payload = screenDoc('remote');
   fetch(`${dbBase()}/shows/${showPath()}/state.json`, { method: 'PUT', body: JSON.stringify(payload) })
     .then(r => {
       netOk = r.ok;
@@ -1813,11 +2472,47 @@ function publishBackground(bg) {
 }
 
 /* ---------- Time of day ---------- */
-let clock24 = false, clockSeconds = true;
+let clock24 = false, clockSeconds = true, clockAnalog = false;
+
+function buildFace() {
+  const g = $('todTicks');
+  if (!g || g.childNodes.length) return;
+  let marks = '';
+  for (let i = 0; i < 60; i++) {
+    const major = i % 5 === 0;
+    const len = major ? 7 : 3;
+    marks += `<line x1="50" y1="${5 + 0}" x2="50" y2="${5 + len}" stroke="${major ? 'var(--text)' : 'var(--dim)'}" ` +
+      `stroke-width="${major ? 1.8 : 0.8}" transform="rotate(${i * 6} 50 50)"/>`;
+  }
+  g.innerHTML = marks;
+}
+
 function renderClock() {
   const el = $('tod');
+  const face = $('todFace');
   if (!el) return;
   const d = new Date();
+
+  if (clockAnalog) {
+    el.style.display = 'none';
+    if (face) face.style.display = 'flex';
+    buildFace();
+    const sec = d.getSeconds() + d.getMilliseconds() / 1000;
+    const min = d.getMinutes() + sec / 60;
+    const hr = (d.getHours() % 12) + min / 60;
+    const set = (id, deg) => { const h = $(id); if (h) h.setAttribute('transform', `rotate(${deg} 50 50)`); };
+    set('todHour', hr * 30);
+    set('todMin', min * 6);
+    const s2 = $('todSec');
+    if (s2) {
+      s2.style.display = clockSeconds ? '' : 'none';
+      set('todSec', sec * 6);
+    }
+    return;
+  }
+
+  el.style.display = '';
+  if (face) face.style.display = 'none';
   let h = d.getHours();
   let suffix = '';
   if (!clock24) {
@@ -1827,7 +2522,7 @@ function renderClock() {
   el.textContent = `${clock24 ? pad(h) : h}:${pad(d.getMinutes())}${clockSeconds ? ':' + pad(d.getSeconds()) : ''}${suffix}`;
   el.className = 'time';
 }
-setInterval(renderClock, 250);
+setInterval(renderClock, 120);
 
 /* ---------- Cue sound ---------- */
 const CLICK_SOUND = 'data:audio/mpeg;base64,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r///2289qhiGIV0qYMWw/Pzbjd0AAEyAR2zcUjFMTWDTHJx76c8HKmamCIiAQhOABc5AcMjN2XOj8NFk+msSV5i6jdE9RIanK2sak0KkUaYvE8GAxCXv19WUxpI0rp4yYCuO72zSs9KETbaazozWSaRssn/LtpwRrX5JpDy2yVvRwoaSoZqLXJ///////s6hs/2TYshEJFDYcOXGEBOSH9FiaBfiIjG2CYlkP6gPiLOwUC4dAwdXCUtaowZM4BU2AKI/ksHIm5mKFhQeELmSJP/7cMTWg43NQzxtGFSKCSclyaYKqXFAciAA0aRAC6oBNQlkLSU1XZbC8kZUakMopsH1YjJqbMLpzBE8GSTG/kiUBh6iqFldCFYRIpqtEroll4f2pkhk9/qdSWfHJhhJDnCgKOGmf//y6silM7I91l0DKisysY7S/8qcG7/2HnAVM1djUSc57DOUPU5THB8QCRj4QlSFglJkwItMqAjY34BVQCq5ZsukOjQGCZyFwIZgZr+ggK81exF4E6o/ORp9msmrzS56UoIoxBA6DURVLRKjvWAyMl1tKolKs+V1l1mXFy46PnrWOVLS765dbCYu1r1rTZcfQremrpL/LUCIGXEYlKgq5QUPFToNSz56z/9BlzhkEJiUwAUiNYOrQYsCrElbGLgGGhgGESfgTYy7TSiNVkzlDAGLXpf/+3DE8AOSfVkobSUYwkusI4mkixgJnIAS3QoGSiFQUUFHRCQUgAQno8JjrEXe7ZAqiIREMh4DwdB4DxAKyQ+ZaRISIQiIZBwRiAodLFSx0oXKHE0k1JwnCrlFZVJNJZVZNJeE4ZsZRkmknYqIzNQsLN9IMhUVFRQWFhYLCoqz/9Qs3//Z//8VTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//tyxO6D0fTZBg3hjQJxm0+BrKVoVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=';
@@ -1907,7 +2602,28 @@ if (!popoutPanel) {
   on('showPass', 'change', () => { refreshPassPath(); });
   document.querySelectorAll('.vopt').forEach(c => c.addEventListener('change', () => { refreshLink(); save(); }));
   on('openLink', 'click', () => window.open(viewerLink(), '_blank', 'noopener'));
-  on('copyLink', 'click', () => {
+  on('dbEdit', 'click', () => {
+  const el = $('dbUrl'), btn = $('dbEdit');
+  if (!el || !btn) return;
+  const locked = el.hasAttribute('readonly');
+  if (locked) {
+    el.removeAttribute('readonly');
+    el.style.opacity = '1';
+    el.style.cursor = '';
+    btn.textContent = 'Done';
+    el.focus();
+    el.select();
+  } else {
+    el.setAttribute('readonly', '');
+    el.style.opacity = '.55';
+    el.style.cursor = 'default';
+    btn.textContent = 'Change';
+    save();
+    refreshLink();
+  }
+});
+
+on('copyLink', 'click', () => {
     navigator.clipboard.writeText(viewerLink()).then(() => { $('shareState').textContent = 'Link copied.'; });
   });
   on('newLink', 'click', () => {
@@ -1924,7 +2640,7 @@ if (!popoutPanel) {
     save();
   }));
 
-  document.querySelectorAll('.swatch').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.swatch:not(.rlsw)').forEach(btn => btn.addEventListener('click', () => {
     const bg = { type: 'color', value: btn.dataset.color };
     applyBackground(bg, true);
   }));
@@ -2008,6 +2724,14 @@ setNet('off');
     save();
     publish(true);
   }));
+  on('todMode', 'click', e => {
+    clockAnalog = !clockAnalog;
+    e.target.textContent = clockAnalog ? 'Digital' : 'Analog';
+    const fmt = $('todFormat');
+    if (fmt) fmt.style.display = clockAnalog ? 'none' : '';
+    renderClock();
+    save();
+  });
   on('todFormat', 'click', e => {
     clock24 = !clock24;
     e.target.textContent = clock24 ? '12 hour' : '24 hour';
@@ -2105,41 +2829,81 @@ setNet('off');
   });
 }
 
-if (!popoutPanel && 'hid' in navigator) {
+function updateConnectLabel() {
+  const btn = $('connect');
+  if (!btn) return;
+  const n = attached.length + serialRoles.length;
+  btn.textContent = n === 0 ? 'Connect a dongle'
+    : n === 1 ? 'Connect the other dongle'
+    : 'Dongles connected';
+}
+
+if (!popoutPanel && ('hid' in navigator || 'serial' in navigator)) {
   on('connect', 'click', async () => {
-    let list = [];
-    try { list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID }] }); } catch {}
-    for (const d of list) await attach(d);
-    const granted = await navigator.hid.getDevices();
-    for (const d of granted.filter(isDsan)) await attach(d);
+    // The VC-2000-2 is a pair of COM ports, so offer serial first.
+    if ('serial' in navigator) {
+      let port = null;
+      try { port = await navigator.serial.requestPort(); } catch {}
+      if (port) { await attachSerial(port); updateConnectLabel(); return; }
+    }
+    if ('hid' in navigator) {
+      let list = [];
+      try { list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID }] }); } catch {}
+      for (const d of list) await attach(d);
+      const granted = await navigator.hid.getDevices();
+      for (const d of granted.filter(isDsan)) await attach(d);
+    }
     updateConnectLabel();
   });
-
-  function updateConnectLabel() {
-    const btn = $('connect');
-    if (!btn) return;
-    btn.textContent = attached.length === 0 ? 'Connect a dongle'
-      : attached.length === 1 ? 'Connect the other dongle'
-      : 'Dongles connected';
-  }
   setInterval(updateConnectLabel, 2000);
-  navigator.hid.getDevices().then(async devices => {
-    for (const d of devices.filter(isDsan)) await attach(d);
-  }).catch(() => {});
-  navigator.hid.addEventListener('connect', async e => {
-    if (isDsan(e.device)) await attach(e.device);
-  });
-  navigator.hid.addEventListener('disconnect', e => {
-    const i = attached.indexOf(e.device);
-    if (i >= 0) attached.splice(i, 1);
-    const r = roles.findIndex(x => x.device === e.device);
-    if (r >= 0) {
-      if (roles[r].kind === 'cue') state.connected = false;
-      if (roles[r].kind === 'timer') { state.timerConnected = false; state.live = null; }
-      roles.splice(r, 1);
-    }
-    render(); broadcast(); publish(true);
-  });
+
+  if ('serial' in navigator) {
+    navigator.serial.getPorts().then(async ports => {
+      for (const port of ports) await attachSerial(port);
+      updateConnectLabel();
+    }).catch(() => {});
+    const eventPort = e => {
+      const t = e && e.target;
+      if (t && typeof t.open === 'function') return t;
+      const p = e && e.port;
+      return (p && typeof p.open === 'function') ? p : null;
+    };
+    navigator.serial.addEventListener('connect', async e => {
+      const port = eventPort(e);
+      if (port) { await attachSerial(port); updateConnectLabel(); }
+    });
+    navigator.serial.addEventListener('disconnect', e => {
+      const port = eventPort(e);
+      const i = serialRoles.findIndex(r => r.port === port);
+      if (i < 0) return;
+      const r = serialRoles[i];
+      r.running = false;
+      if (r.kind === 'cue') state.connected = false;
+      if (r.kind === 'timer') { state.timerConnected = false; state.live = null; }
+      serialRoles.splice(i, 1);
+      render(); broadcast(); publish(true);
+    });
+  }
+
+  if ('hid' in navigator) {
+    navigator.hid.getDevices().then(async devices => {
+      for (const d of devices.filter(isDsan)) await attach(d);
+    }).catch(() => {});
+    navigator.hid.addEventListener('connect', async e => {
+      if (isDsan(e.device)) await attach(e.device);
+    });
+    navigator.hid.addEventListener('disconnect', e => {
+      const i = attached.indexOf(e.device);
+      if (i >= 0) attached.splice(i, 1);
+      const r = roles.findIndex(x => x.device === e.device);
+      if (r >= 0) {
+        if (roles[r].kind === 'cue') state.connected = false;
+        if (roles[r].kind === 'timer') { state.timerConnected = false; state.live = null; }
+        roles.splice(r, 1);
+      }
+      render(); broadcast(); publish(true);
+    });
+  }
 } else if (!popoutPanel) {
   $('status').textContent = 'This browser cannot read the hardware. Use Chrome or Edge.';
   $('connect').disabled = true;
@@ -2179,6 +2943,8 @@ if ($('showDetails')) $('showDetails').checked = showDetails;
 document.body.classList.toggle('hide-details', !showDetails);
 if ($('todFormat')) $('todFormat').textContent = clock24 ? '12 hour' : '24 hour';
 if ($('todSeconds')) $('todSeconds').textContent = clockSeconds ? 'Hide seconds' : 'Show seconds';
+if ($('todMode')) $('todMode').textContent = clockAnalog ? 'Digital' : 'Analog';
+if ($('todFormat')) $('todFormat').style.display = clockAnalog ? 'none' : '';
 renderClock();
 paintArrows(arrowStyle);
 applyLayout(arrowStacked);

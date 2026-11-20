@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Show view</title>
+<link rel="icon" href="/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="theme-color" content="#10151C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -18,7 +21,7 @@
 #bgLayer{position:fixed;inset:0;background-size:cover;background-position:center;z-index:-1}
 body.laid-out{display:block;padding:0}
 body.laid-out #tod,body.laid-out #time,body.laid-out .arrows,
-body.laid-out #slide,body.laid-out #msg,body.laid-out #ros{
+body.laid-out #msg,body.laid-out #ros{
   position:absolute;margin:0;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
 body.laid-out #msg,body.laid-out #ros{white-space:normal}
 body.laid-out #sub{display:none}
@@ -32,10 +35,9 @@ body.laid-out .arrows.stacked .cue-arrow.next{transform:translate(-3%,8%);margin
 body.laid-out .arrows.stacked .cue-arrow.back{transform:translate(3%,-8%);margin:0}
 body.clear{background:transparent}
 body.clear #bgLayer{display:none}
-body.clear #time,body.clear .cue-arrow,body.clear #slide,body.clear #sub{filter:drop-shadow(0 2px 7px rgba(0,0,0,.6))}
-body.hide-arrows .arrows,body.hide-arrows #slide{display:none}
+body.clear #time,body.clear .cue-arrow,body.clear #sub{filter:drop-shadow(0 2px 7px rgba(0,0,0,.6))}
+body.hide-arrows .arrows{display:none}
 body.hide-timer #time,body.hide-timer #sub{display:none}
-body.hide-slide #slide{display:none}
 body.hide-state #state{display:none}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;
@@ -123,8 +125,6 @@ body.hide-timer #time,body.hide-timer #sub{display:none}
   65%{opacity:1;transform:translateX(0) scale(1)}
   100%{opacity:.45;transform:translateX(0) scale(1)}}
 
-#slide{font-size:clamp(14px,2.4vh,19px);color:var(--dim)}
-#slide b{color:var(--text);font-weight:500}
 #msg{display:none;color:var(--amber);font-weight:500;text-align:center;line-height:1.15;word-break:break-word;
   font-size:clamp(20px,5vh,54px);padding:0 4vw;margin-top:1vh}
 #msg.on{display:block}
@@ -150,7 +150,6 @@ body.hide-extras #msg,body.hide-extras #ros{display:none}
   <svg viewBox="0 0 100 100" role="img" aria-label="Back cue" id="aBack" class="cue-arrow back style-classic"></svg>
   <svg viewBox="0 0 100 100" role="img" aria-label="Next cue" id="aNext" class="cue-arrow next style-classic"></svg>
 </div>
-<div id="slide">Slide <b id="slideNum">0</b></div>
 <div id="msg"></div>
 <div id="ros"></div>
 
@@ -169,7 +168,6 @@ const flag = (name, def) => { const v = q.get(name); return v === null ? def : !
 if (flag('clear', false)) document.body.classList.add('clear');
 if (!flag('arrows', true)) document.body.classList.add('hide-arrows');
 if (!flag('timer', true)) document.body.classList.add('hide-timer');
-if (!flag('slide', true)) document.body.classList.add('hide-slide');
 if (!flag('status', true)) document.body.classList.add('hide-state');
 if (!flag('extras', true)) document.body.classList.add('hide-extras');
 const showDetail = flag('detail', false);
@@ -207,7 +205,35 @@ async function unlock(pass, remember) {
   } catch { return false; }
 }
 
+// Local mode: this page is the console's own Show view, fed over a channel
+// inside the browser instead of over the network.
+function startLocal() {
+  const el = $('state');
+  if (el) el.textContent = '';
+  let channel = null;
+  try { channel = new BroadcastChannel('tcg-cue-console'); } catch {}
+  if (!channel) { if (el) el.textContent = 'cannot reach the console'; return; }
+  channel.addEventListener('message', e => {
+    const d = e.data;
+    if (!d) return;
+    if (d.type === 'view' && d.doc) { try { paint(d.doc); } catch {} }
+    else if (d.type === 'viewbg') { try { applyBackground(d.bg); } catch {} }
+    else if (d.type === 'cue' && d.cue) { try { flash(d.cue); } catch {} }
+  });
+  channel.postMessage({ type: 'hello-view' });
+  setInterval(() => channel.postMessage({ type: 'hello-view' }), 5000);
+  document.addEventListener('keydown', ev => {
+    const k = (ev.key || '').toLowerCase();
+    if (k === 'escape' && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    if (k === 'f') {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      else document.documentElement.requestFullscreen().catch(() => {});
+    }
+  });
+}
+
 async function begin() {
+  if (q.get('local') === '1') { startLocal(); return; }
   if (!db || !key) {
     $('state').textContent = 'bad link';
     return;
@@ -244,7 +270,7 @@ function applyRemoteLayout(layout) {
   if (!layout) return;
   appliedLayout = layout;
   document.body.classList.add('laid-out');
-  const map = { tod: '#tod', timer: '#time', arrows: '.arrows', nownext: '#ros', message: '#msg', slide: '#slide' };
+  const map = { tod: '#tod', timer: '#time', arrows: '.arrows', nownext: '#ros', message: '#msg' };
   for (const [k, sel] of Object.entries(map)) {
     const el = document.querySelector(sel);
     const b = layout[k];
@@ -284,7 +310,6 @@ function sizeText() {
   fitText('#tod', 'tod', 0.7);
   fitText('#msg', 'message', 0.5);
   fitText('#ros', 'nownext', 0.55);
-  fitText('#slide', 'slide', 0.5);
 }
 window.addEventListener('resize', sizeText);
 let shownStyle = null;
@@ -354,7 +379,6 @@ function paint(d) {
   if (typeof wantStacked === 'boolean' && wantStacked !== shownStacked) { shownStacked = wantStacked; applyLayout(wantStacked); }
   if (d.layout) applyRemoteLayout(d.layout);
   requestAnimationFrame(sizeText);
-  $('slideNum').textContent = d.slide != null ? d.slide : 0;
 
   const msg = $('msg');
   if (msg) {
@@ -409,27 +433,29 @@ function flash(type) {
   });
 }
 
+function applyBackground(d) {
+  const layer = document.getElementById('bgLayer');
+  if (!layer) return;
+  if (!d) { layer.style.backgroundImage = ''; layer.style.backgroundColor = ''; return; }
+  if (typeof d === 'string') d = { type: 'image', value: d };
+  if (d.type === 'color') {
+    layer.style.backgroundImage = '';
+    layer.style.backgroundColor = d.value;
+    return;
+  }
+  const fit = d.fit || 'cover';
+  const zoom = d.zoom || 100;
+  layer.style.backgroundColor = '#000';
+  layer.style.backgroundImage = `url(${d.value})`;
+  layer.style.backgroundRepeat = 'no-repeat';
+  layer.style.backgroundSize = fit === 'stretch' ? '100% 100%' : fit === 'contain' ? 'contain' : (zoom === 100 ? 'cover' : zoom + '%');
+  layer.style.backgroundPosition = `${d.x == null ? 50 : d.x}% ${d.y == null ? 50 : d.y}%`;
+}
+
 function loadBackground() {
   fetch(`${db}/shows/${path}/bg.json`, { cache: 'no-store' })
     .then(r => r.json())
-    .then(d => {
-      const layer = document.getElementById('bgLayer');
-      if (!layer) return;
-      if (!d) { layer.style.backgroundImage = ''; layer.style.backgroundColor = ''; return; }
-      if (typeof d === 'string') d = { type: 'image', value: d };
-      if (d.type === 'color') {
-        layer.style.backgroundImage = '';
-        layer.style.backgroundColor = d.value;
-        return;
-      }
-      const fit = d.fit || 'cover';
-      const zoom = d.zoom || 100;
-      layer.style.backgroundColor = '#000';
-      layer.style.backgroundImage = `url(${d.value})`;
-      layer.style.backgroundRepeat = 'no-repeat';
-      layer.style.backgroundSize = fit === 'stretch' ? '100% 100%' : fit === 'contain' ? 'contain' : (zoom === 100 ? 'cover' : zoom + '%');
-      layer.style.backgroundPosition = `${d.x == null ? 50 : d.x}% ${d.y == null ? 50 : d.y}%`;
-    })
+    .then(applyBackground)
     .catch(err => {
       const el = document.getElementById('state');
       if (el && flag('debug', false)) el.textContent = 'bg: ' + (err && err.message);
