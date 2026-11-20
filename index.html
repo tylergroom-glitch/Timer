@@ -289,7 +289,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <div class="brand">Cue&nbsp;Console <span class="build" id="brandVer">b99</span></div>
+  <div class="brand">Cue&nbsp;Console <span class="build" id="brandVer">b101</span></div>
 
   <div class="chips">
     <span class="chip"><span class="dot" id="dot"></span><span id="status">Cues</span></span>
@@ -383,6 +383,7 @@ body.popout .win header{display:none}
         <button class="ghost" id="layoutSave">Save as…</button>
         <button class="ghost" id="layoutDelete">Delete</button>
         <button class="ghost" id="resetLayout">Reset</button>
+        <button class="ghost" id="layoutCopy" title="Copy this arrangement so it can be shipped as the default">Copy this layout</button>
       </div>
     </section>
 
@@ -701,7 +702,26 @@ body.popout .win header{display:none}
 </div>
 
 <script>
-const BUILD = 99;
+const BUILD = 101;
+
+// A layout shipped with the page. Whenever LAYOUT_STAMP changes, every console
+// adopts this arrangement once on its next launch; after that the operator can
+// move things freely and it is not forced again until the stamp changes.
+// Press "Copy this layout" in Settings to produce a replacement block.
+const LAYOUT_STAMP = 1;
+const FORCED_LAYOUT = {
+  'win-timer':   { left: '16px',  top: '16px',  width: '330px', height: '200px' },
+  'win-arrows':  { left: '16px',  top: '226px', width: '330px', height: '200px' },
+  'win-clock':   { left: '16px',  top: '436px', width: '330px', height: '200px' },
+  'win-rlayout': { left: '356px', top: '16px',  width: '900px', height: '620px' },
+  'win-remote':  { left: '420px', top: '60px',  width: '380px', height: '460px', min: true },
+  'win-msg':     { left: '420px', top: '120px', width: '420px', height: '250px', min: true },
+  'win-ros':     { left: '460px', top: '160px', width: '460px', height: '300px', min: true },
+  'win-debug':   { left: '200px', top: '100px', width: '470px', height: '420px', min: true },
+  'win-next':    { left: '120px', top: '200px', width: '320px', height: '200px', min: true },
+  'win-back':    { left: '460px', top: '200px', width: '320px', height: '200px', min: true },
+  'win-help':    { left: '70px',  top: '70px',  width: '560px', height: '560px', min: true }
+};
 // the desktop app passes its own version in; a browser tab just shows the build
 (function () {
   const el = document.getElementById('brandVer');
@@ -793,11 +813,16 @@ channel.addEventListener('message', e => {
 if (!popoutPanel) setInterval(broadcast, 5000);
 
 /* ---------- Saved settings ---------- */
+let layoutForced = false;
 function loadSaved() {
   try {
     const saved = JSON.parse(localStorage.getItem('cue-console') || '{}');
-    if (!popoutPanel && saved.layout) {
-      for (const [id, box] of Object.entries(saved.layout)) {
+    // A new shipped layout wins once, then the operator's own choices take over.
+    const forcing = !popoutPanel && FORCED_LAYOUT && saved.layoutStamp !== LAYOUT_STAMP;
+    const useLayout = forcing ? FORCED_LAYOUT : saved.layout;
+    if (forcing) layoutForced = true;
+    if (!popoutPanel && useLayout) {
+      for (const [id, box] of Object.entries(useLayout)) {
         const el = document.getElementById(id);
         if (!el) continue;
         if (box.left) el.style.left = box.left;
@@ -881,6 +906,7 @@ function save() {
                        min: w.dataset.min === '1', clear: w.classList.contains('clear') };
     });
     localStorage.setItem('cue-console', JSON.stringify({ layout, slide: state.slide, arrowStyle, arrowStacked, soundOn, stopAtZero, flashAtZero, showDetails, clock24, clockSeconds, clockAnalog,
+      layoutStamp: LAYOUT_STAMP,
       showPanel: $('showPanel') ? $('showPanel').value : 'timer', selectedProgram, message, ros, locked, rlayout, rlBg,
       layouts, bgs, rlTarget,
       arrowOpts: (function () { readArrowOpts(); return arrowOpts; })(),
@@ -1955,6 +1981,25 @@ function versionLine() {
     `Console build ${BUILD}<br>${src}`;
 }
 
+on('layoutCopy', 'click', () => {
+  const out = {};
+  document.querySelectorAll('.win').forEach(w => {
+    out[w.id] = {
+      left: w.style.left, top: w.style.top,
+      width: w.style.width, height: w.style.height
+    };
+    if (w.dataset.min === '1') out[w.id].min = true;
+    if (w.classList.contains('clear')) out[w.id].clear = true;
+  });
+  const text = JSON.stringify(out, null, 2);
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = $('layoutCopy');
+    if (btn) { btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = 'Copy this layout'; }, 1500); }
+  }).catch(() => {
+    window.prompt('Copy this and send it over:', text);
+  });
+});
+
 on('helpBtn', 'click', () => {
   const w = $('win-help');
   if (!w) return;
@@ -2089,7 +2134,10 @@ function applyRemoteBg(bg, publishIt) {
   if ($('rlBgX')) $('rlBgX').value = rlBg.x == null ? 50 : rlBg.x;
   if ($('rlBgY')) $('rlBgY').value = rlBg.y == null ? 50 : rlBg.y;
   save();
-  if (publishIt) publishBackground(rlBg);
+  if (publishIt) {
+    if (rlTarget === 'show') pushView();
+    else publishBackground(rlBg);
+  }
 }
 let rlSelected = null;
 
@@ -2805,6 +2853,44 @@ on('copyLink', 'click', () => {
     const bg = { type: 'color', value: btn.dataset.color };
     applyBackground(bg, true);
   }));
+
+  // Screen builder background: colour swatches, a photo, and how it sits.
+  document.querySelectorAll('.swatch.rlsw').forEach(btn => btn.addEventListener('click', () => {
+    applyRemoteBg({ type: 'color', value: btn.dataset.color }, true);
+  }));
+
+  on('rlBgFile', 'change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 2200 / img.width);
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        applyRemoteBg({ type: 'image', value: c.toDataURL('image/jpeg', 0.82),
+                        fit: 'cover', zoom: 100, x: 50, y: 50 }, true);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  });
+
+  const bgAdjust = () => {
+    if (rlBg.type !== 'image') return;
+    applyRemoteBg(Object.assign({}, rlBg, {
+      fit: $('rlBgFit') ? $('rlBgFit').value : 'cover',
+      zoom: $('rlBgZoom') ? Number($('rlBgZoom').value) : 100,
+      x: $('rlBgX') ? Number($('rlBgX').value) : 50,
+      y: $('rlBgY') ? Number($('rlBgY').value) : 50
+    }), true);
+  };
+  on('rlBgFit', 'change', bgAdjust);
+  ['rlBgZoom', 'rlBgX', 'rlBgY'].forEach(id => on(id, 'input', bgAdjust));
 
   on('bgFile', 'change', e => {
     const file = e.target.files[0];
