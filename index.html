@@ -278,7 +278,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <div class="brand">Cue&nbsp;Console <span class="build">b92</span></div>
+  <div class="brand">Cue&nbsp;Console <span class="build" id="brandVer">b94</span></div>
 
   <div class="chips">
     <span class="chip"><span class="dot" id="dot"></span><span id="status">Cues</span></span>
@@ -687,7 +687,15 @@ body.popout .win header{display:none}
 </div>
 
 <script>
-const BUILD = 92;
+const BUILD = 94;
+// the desktop app passes its own version in; a browser tab just shows the build
+(function () {
+  const el = document.getElementById('brandVer');
+  if (!el) return;
+  const appVer = new URLSearchParams(location.search).get('v');
+  el.textContent = appVer ? `v${appVer} · b${BUILD}` : `b${BUILD}`;
+  el.title = appVer ? `App version ${appVer}, console build ${BUILD}` : `Console build ${BUILD}`;
+})();
 const VID = 0x0483, PID = 0x101a;
 // DSAN dongles have shown up under more than one product id
 const isDsan = d => d.vendorId === VID && (d.productId === 0x101a || d.productId === 0x2080 ||
@@ -1444,8 +1452,10 @@ async function attach(d) {
      VideoClock-Limitimer  19200 baud, same 52-byte packets as the old dongles
      VideoClock-PerfectCue  9600 baud, one byte per press: F3 next, FB back      */
 const serialRoles = [];
-const SER_TIMER_BAUD = 19200, SER_CUE_BAUD = 9600;
-const SER_NEXT = 0xF3, SER_BACK = 0xFB;
+// Both ports of the VC-2000-2 run at 19200. The cue port sends one byte per
+// press: 0F next, 1F back — the same value with one bit flipped for direction.
+const SER_TIMER_BAUD = 19200, SER_CUE_BAUD = 19200;
+const SER_NEXT = 0x0F, SER_BACK = 0x1F;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function serOpen(r, baud) {
@@ -1585,27 +1595,32 @@ async function serDetect(r) {
   r.running = true;
   r.pump = serPump(r);
   await sleep(1800);
-  if (serHasHeader(r.probe)) {
+  const carry = r.probe;
+  r.probe = [];
+  if (serHasHeader(carry)) {
     r.kind = 'timer';
     state.timerConnected = true;
-    const carry = r.probe; r.probe = [];
     serFeedTimer(r, carry);
     render(); broadcast();
     return;
   }
-  // nothing that looks like timer data: treat it as the cue port
-  await serClose(r);
-  try { await serOpen(r, SER_CUE_BAUD); }
-  catch (e) {
-    const msg = (e && e.message) || 'could not open';
-    serRetry(r, /open/i.test(msg) ? 'Port is busy — close other apps using it' : msg);
-    return;
-  }
+  // nothing that looks like timer data: it is the cue port, at the same speed
   r.kind = 'cue';
-  r.probe = [];
   state.connected = true;
-  r.running = true;
-  r.pump = serPump(r);
+  if (SER_CUE_BAUD !== r.baud) {
+    await serClose(r);
+    try { await serOpen(r, SER_CUE_BAUD); }
+    catch (e) {
+      const msg = (e && e.message) || 'could not open';
+      serRetry(r, /open/i.test(msg) ? 'Port is busy — close other apps using it' : msg);
+      return;
+    }
+    r.running = true;
+    r.pump = serPump(r);
+  } else {
+    // a press during those first seconds still counts
+    serFeedCue(r, carry);
+  }
   render(); broadcast();
 }
 
@@ -2272,9 +2287,11 @@ setInterval(() => {
   const box = $('debug');
   if (!box) return;
   const cr = (navigator.userAgent.match(/Chrome\/(\d+)/) || [])[1];
+  const appVer = params.get('v');
   const src = params.get('src') === 'web' ? 'page from website'
     : params.get('src') === 'app' ? 'page built into the app' : 'page from this file';
-  const head = `<div style="color:var(--dim);margin-bottom:6px">build ${BUILD} · ${src}<br>` +
+  const head = `<div style="color:var(--dim);margin-bottom:6px">` +
+    (appVer ? `app ${appVer} · ` : '') + `build ${BUILD} · ${src}<br>` +
     `engine ${cr || '?'} · serial ${'serial' in navigator ? 'yes' : 'no'} · usb ${'hid' in navigator ? 'yes' : 'no'}</div>`;
   if (!roles.length && !serialRoles.length) {
     box.innerHTML = head + 'No dongles connected. Press Connect and pick your dongle.';
