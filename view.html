@@ -171,19 +171,25 @@ if (!flag('timer', true)) document.body.classList.add('hide-timer');
 if (!flag('status', true)) document.body.classList.add('hide-state');
 if (!flag('extras', true)) document.body.classList.add('hide-extras');
 const showDetail = flag('detail', false);
-if (flag('tod', false)) {
-  document.body.classList.add('show-tod');
-  const todEl = document.getElementById('tod');
-  const tick = () => {
-    const d = new Date();
-    let h = d.getHours();
-    const suffix = h < 12 ? ' AM' : ' PM';
-    h = h % 12 || 12;
-    todEl.textContent = `${h}:${pad(d.getMinutes())}${suffix}`;
-  };
-  tick();
-  setInterval(tick, 1000);
+// The clock always runs; whether it shows is decided by the link's flags or,
+// for a laid-out screen, by the layout itself.
+if (flag('tod', false)) document.body.classList.add('show-tod');
+const todFmt = { h24: false, secs: false };
+const todEl = document.getElementById('tod');
+function todTick() {
+  if (!todEl) return;
+  const d = new Date();
+  let h = d.getHours();
+  let suffix = '';
+  if (!todFmt.h24) { suffix = h < 12 ? ' AM' : ' PM'; h = h % 12 || 12; }
+  const text = `${todFmt.h24 ? pad(h) : h}:${pad(d.getMinutes())}` +
+    (todFmt.secs ? ':' + pad(d.getSeconds()) : '') + suffix;
+  if (text === todEl.textContent) return;
+  todEl.textContent = text;
+  try { if (appliedLayout) fitText('#tod', 'tod', 0.7); } catch {}
 }
+setTimeout(todTick, 0);
+setInterval(todTick, 500);
 let path = key;
 
 async function hashPass(text) {
@@ -377,6 +383,8 @@ function paint(d) {
   if (wantStyle && wantStyle !== shownStyle) { shownStyle = wantStyle; paintArrows(wantStyle); }
   const wantStacked = typeof d.remoteStacked === 'boolean' ? d.remoteStacked : d.arrowStacked;
   if (typeof wantStacked === 'boolean' && wantStacked !== shownStacked) { shownStacked = wantStacked; applyLayout(wantStacked); }
+  if (d.clock24 != null) todFmt.h24 = !!d.clock24;
+  if (d.clockSeconds != null) todFmt.secs = !!d.clockSeconds;
   if (d.layout) applyRemoteLayout(d.layout);
   requestAnimationFrame(sizeText);
 

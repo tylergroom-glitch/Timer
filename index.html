@@ -260,8 +260,14 @@ body.locked .win header button.mini,body.locked .win header button.clearbg{displ
   line-height:1;cursor:grab;user-select:none;font-variant-numeric:tabular-nums}
 .rlel.sel{outline:1px solid var(--blue);outline-offset:1px}
 .rlel.hidden{display:none}
-.rlel .hand{position:absolute;right:0;bottom:0;width:12px;height:12px;cursor:nwse-resize;
+.rlel .hand{position:absolute;width:12px;height:12px;background:transparent}
+.rlel .hand.se{right:0;bottom:0;cursor:nwse-resize;
   background:linear-gradient(135deg,transparent 50%,var(--blue) 50%)}
+.rlel .hand.nw{left:0;top:0;cursor:nwse-resize}
+.rlel .hand.ne{right:0;top:0;cursor:nesw-resize}
+.rlel .hand.sw{left:0;bottom:0;cursor:nesw-resize}
+.rlel.sel .hand.nw,.rlel.sel .hand.ne,.rlel.sel .hand.sw{
+  background:linear-gradient(135deg,transparent 60%,var(--blue) 60%);opacity:.6}
 .rlguide{position:absolute;background:var(--blue);opacity:.8;pointer-events:none}
 #camBody{display:flex;flex-direction:column;gap:8px;padding:10px}
 #camView{flex:1;min-height:0;display:none;background:#000;border-radius:6px;overflow:hidden}
@@ -283,7 +289,7 @@ body.popout .win header{display:none}
 <div id="bgLayer"></div>
 
 <div id="bar">
-  <div class="brand">Cue&nbsp;Console <span class="build" id="brandVer">b96</span></div>
+  <div class="brand">Cue&nbsp;Console <span class="build" id="brandVer">b99</span></div>
 
   <div class="chips">
     <span class="chip"><span class="dot" id="dot"></span><span id="status">Cues</span></span>
@@ -633,6 +639,9 @@ body.popout .win header{display:none}
     <div class="body">
       <div id="helpBody" style="font-size:13px;line-height:1.65">
 
+        <div id="helpVersion" style="background:#0B1016;border:1px solid var(--line);border-radius:6px;
+          padding:8px 10px;margin:0 0 12px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px"></div>
+
         <h3 style="margin:0 0 6px;font-size:14px">Getting the hardware connected</h3>
         <p style="margin:0 0 4px">Plug the DSAN dongle into USB, and run the Cat-5 from the Limitimer or
         PerfectCue into it. Then press <strong>Connect</strong> in the top bar.</p>
@@ -692,7 +701,7 @@ body.popout .win header{display:none}
 </div>
 
 <script>
-const BUILD = 96;
+const BUILD = 99;
 // the desktop app passes its own version in; a browser tab just shows the build
 (function () {
   const el = document.getElementById('brandVer');
@@ -1938,9 +1947,19 @@ function buildWindowMenu() {
   }));
 }
 
+function versionLine() {
+  const appVer = params.get('v');
+  const src = params.get('src') === 'web' ? 'page from the website'
+    : params.get('src') === 'app' ? 'page built into the app' : 'page opened directly';
+  return (appVer ? `App version ${appVer}<br>` : '') +
+    `Console build ${BUILD}<br>${src}`;
+}
+
 on('helpBtn', 'click', () => {
   const w = $('win-help');
   if (!w) return;
+  const v = $('helpVersion');
+  if (v) v.innerHTML = versionLine();
   const hidden = w.style.display === 'none' || w.dataset.min === '1';
   if (hidden) setWindowVisible(w, true);
   else { w.style.zIndex = ++z; }
@@ -2117,7 +2136,9 @@ function renderRlStage() {
       el = document.createElement('div');
       el.className = 'rlel';
       el.dataset.k = k;
-      el.innerHTML = '<span class="txt"></span><span class="hand"></span>';
+      el.innerHTML = '<span class="txt"></span>' +
+        '<span class="hand nw"></span><span class="hand ne"></span>' +
+        '<span class="hand sw"></span><span class="hand se"></span>';
       stage.append(el);
       rlBindElement(el);
     }
@@ -2137,10 +2158,20 @@ function renderRlStage() {
       txt.style.height = '100%';
     } else {
       txt.textContent = rlSample(k);
-      txt.style.fontSize = Math.max(7, (b.h / 100) * h * (b.size || 0.7)) + 'px';
       txt.style.color = rlColorFor(k, b);
       txt.style.fontWeight = (k === 'timer' || k === 'tod') ? 500 : 400;
       txt.style.whiteSpace = 'nowrap';
+      // start from the box height, then shrink until it fits the width too,
+      // which is what the real screen does
+      const w = stage.clientWidth || 300;
+      let size = Math.max(7, (b.h / 100) * h * (b.size || 0.7));
+      txt.style.fontSize = size + 'px';
+      const maxW = (b.w / 100) * w - 4;
+      for (let i = 0; i < 24 && size > 6; i++) {
+        if (txt.scrollWidth <= maxW) break;
+        size *= 0.92;
+        txt.style.fontSize = size + 'px';
+      }
     }
   });
   syncRlList();
@@ -2218,14 +2249,34 @@ function rlBindElement(el) {
     const stage = $('rlStage');
     const rect = stage.getBoundingClientRect();
     const box = el.getBoundingClientRect();
-    const resizing = e.target.classList.contains('hand');
+    const hand = e.target.classList.contains('hand') ? e.target : null;
+    const resizing = !!hand;
+    const west = hand && hand.classList.contains('nw') || hand && hand.classList.contains('sw');
+    const north = hand && hand.classList.contains('nw') || hand && hand.classList.contains('ne');
+    const x0 = b.x, y0 = b.y, w0 = b.w, h0 = b.h;
+    const right0 = b.x + b.w, bottom0 = b.y + b.h;
+    const sx = e.clientX, sy = e.clientY;
     const ox = e.clientX - box.left, oy = e.clientY - box.top;
     const snap = v => $('rlSnap') && $('rlSnap').checked ? Math.round(v / 2.5) * 2.5 : Math.round(v * 10) / 10;
 
     const move = ev => {
       if (resizing) {
-        b.w = Math.max(4, Math.min(100 - b.x, snap(((ev.clientX - box.left) / rect.width) * 100)));
-        b.h = Math.max(3, Math.min(100 - b.y, snap(((ev.clientY - box.top) / rect.height) * 100)));
+        const dx = ((ev.clientX - sx) / rect.width) * 100;
+        const dy = ((ev.clientY - sy) / rect.height) * 100;
+        if (west) {
+          const left = Math.max(0, Math.min(right0 - 4, snap(x0 + dx)));
+          b.x = left;
+          b.w = right0 - left;
+        } else {
+          b.w = Math.max(4, Math.min(100 - x0, snap(w0 + dx)));
+        }
+        if (north) {
+          const top = Math.max(0, Math.min(bottom0 - 3, snap(y0 + dy)));
+          b.y = top;
+          b.h = bottom0 - top;
+        } else {
+          b.h = Math.max(3, Math.min(100 - y0, snap(h0 + dy)));
+        }
       } else {
         b.x = Math.max(0, Math.min(100 - b.w, snap(((ev.clientX - rect.left - ox) / rect.width) * 100)));
         b.y = Math.max(0, Math.min(100 - b.h, snap(((ev.clientY - rect.top - oy) / rect.height) * 100)));
@@ -2475,6 +2526,8 @@ function screenDoc(which) {
     arrowStacked,
     stopAtZero,
     flashAtZero,
+    clock24,
+    clockSeconds,
     at: Date.now()
   };
 }
